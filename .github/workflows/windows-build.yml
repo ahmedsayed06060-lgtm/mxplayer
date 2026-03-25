@@ -1,0 +1,40 @@
+name: Build Windows App
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Flutter manually
+        shell: pwsh
+        run: |
+          git clone https://github.com/flutter/flutter.git -b stable
+          echo "$PWD\flutter\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      
+      - name: Verify Flutter version
+        run: flutter --version
+        
+      - name: Enable Windows
+        run: flutter config --enable-windows-desktop
+
+      - name: Add Windows support
+        run: flutter create .
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build Windows App
+        run: flutter build windows --release
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: ./build/windows/x64/runner/Release/
