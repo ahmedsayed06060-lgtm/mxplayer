@@ -1,0 +1,20 @@
+{
+  "@@locale": "en",
+  "appTitle": "Smart Player Pro",
+  "videos": "Videos",
+  "folders": "Folders",
+  "favorites": "Favorites",
+  "settings": "Settings",
+  "recentlyPlayed": "Recently Played",
+  "player": "Player",
+  "language": "Language",
+  "theme": "Theme",
+  "themeDark": "Dark",
+  "languagePlaceholder": "English and Arabic will be configurable in a later step.",
+  "homeVideosPlaceholder": "Video library and folders will be connected in the media scanner module.",
+  "homeSettingsPlaceholder": "Application preferences, language, and playback options live here.",
+  "playerPlaceholderTitle": "Player engine coming next",
+  "playerPlaceholderBody": "Playback, subtitles, gestures, and fullscreen controls will be added step by step.",
+  "splashTagline": "Professional video playback for local media, IPTV, and downloads."
+}
+
