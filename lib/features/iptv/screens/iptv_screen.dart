@@ -5,6 +5,7 @@ import '../../../localization/generated/app_localizations.dart';
 import '../../favorites/controllers/favorites_controller.dart';
 import '../../player/controllers/player_controller.dart';
 import '../../player/screens/player_screen.dart';
+import '../../player/models/playback_item.dart';
 import '../controllers/iptv_controller.dart';
 
 class IptvScreen extends ConsumerStatefulWidget {
@@ -112,3 +113,4 @@ class _IptvScreenState extends ConsumerState<IptvScreen> {
     );
   }
 }
+

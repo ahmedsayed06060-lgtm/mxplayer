@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -69,18 +68,18 @@ class DownloadService {
     }
   }
 
-  Future<String?> pause(String? taskId) {
+  Future<void> pause(String? taskId) async {
     if (taskId == null || !(Platform.isAndroid || Platform.isIOS)) {
-      return Future<String?>.value(null);
+      return;
     }
-    return FlutterDownloader.pause(taskId: taskId);
+    await FlutterDownloader.pause(taskId: taskId);
   }
 
-  Future<String?> resume(String? taskId) {
+  Future<void> resume(String? taskId) async {
     if (taskId == null || !(Platform.isAndroid || Platform.isIOS)) {
-      return Future<String?>.value(null);
+      return;
     }
-    return FlutterDownloader.resume(taskId: taskId);
+    await FlutterDownloader.resume(taskId: taskId);
   }
 
   Future<void> cancel(String? taskId) async {

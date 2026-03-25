@@ -12,6 +12,7 @@ import '../../library/folder_list/screens/folder_list_screen.dart';
 import '../../library/video_list/screens/video_list_screen.dart';
 import '../../player/controllers/player_controller.dart';
 import '../../player/screens/player_screen.dart';
+import '../../player/models/playback_item.dart';
 import '../../settings/screens/settings_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -192,3 +193,4 @@ class _MiniPlayerBar extends ConsumerWidget {
     );
   }
 }
+

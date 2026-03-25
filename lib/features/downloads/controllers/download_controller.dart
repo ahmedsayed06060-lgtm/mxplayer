@@ -30,13 +30,13 @@ class DownloadController extends StateNotifier<List<DownloadItem>> {
   }
 
   Future<void> pause(DownloadItem item) async {
-    final nextId = await _service.pause(item.platformTaskId);
-    _replace(item.copyWith(status: DownloadStatus.paused, platformTaskId: nextId ?? item.platformTaskId));
+    await _service.pause(item.platformTaskId);
+    _replace(item.copyWith(status: DownloadStatus.paused));
   }
 
   Future<void> resume(DownloadItem item) async {
-    final nextId = await _service.resume(item.platformTaskId);
-    _replace(item.copyWith(status: DownloadStatus.running, platformTaskId: nextId ?? item.platformTaskId));
+    await _service.resume(item.platformTaskId);
+    _replace(item.copyWith(status: DownloadStatus.running));
   }
 
   Future<void> cancel(DownloadItem item) async {
