@@ -11,10 +11,18 @@
   "theme": "Theme",
   "themeDark": "Dark",
   "languagePlaceholder": "English and Arabic will be configurable in a later step.",
-  "homeVideosPlaceholder": "Video library and folders will be connected in the media scanner module.",
-  "homeSettingsPlaceholder": "Application preferences, language, and playback options live here.",
   "playerPlaceholderTitle": "Player engine coming next",
   "playerPlaceholderBody": "Playback, subtitles, gestures, and fullscreen controls will be added step by step.",
-  "splashTagline": "Professional video playback for local media, IPTV, and downloads."
+  "splashTagline": "Professional video playback for local media, IPTV, and downloads.",
+  "allVideos": "All Videos",
+  "storage": "Storage",
+  "selectFolder": "Select Folder",
+  "refresh": "Refresh",
+  "scanFailed": "Scan failed",
+  "tryAgain": "Try Again",
+  "noLibraryFound": "No video library found",
+  "noLibraryFoundMessage": "Choose a folder or grant storage access to scan your video collection.",
+  "noVideosFound": "No videos found in the selected locations.",
+  "noFoldersFound": "No folders found.",
+  "items": "items"
 }
-

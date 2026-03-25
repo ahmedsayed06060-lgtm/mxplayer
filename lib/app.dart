@@ -1,24 +1,28 @@
 import 'package:flutter/material.dart';
-import 'localization/generated/app_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/providers/locale_controller.dart';
 import 'core/themes/app_theme.dart';
+import 'features/downloads/screens/download_manager_screen.dart';
 import 'features/home/screens/home_screen.dart';
 import 'features/player/screens/player_screen.dart';
-import 'features/settings/screens/settings_screen.dart';
 import 'features/splash/screens/splash_screen.dart';
+import 'localization/generated/app_localizations.dart';
 
-class SmartPlayerProApp extends StatelessWidget {
+class SmartPlayerProApp extends ConsumerWidget {
   const SmartPlayerProApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeControllerProvider);
+
     return MaterialApp(
       title: 'Smart Player Pro',
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.dark,
       theme: AppTheme.darkTheme,
       darkTheme: AppTheme.darkTheme,
-      locale: null,
+      locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       onGenerateRoute: (settings) {
@@ -33,9 +37,9 @@ class SmartPlayerProApp extends StatelessWidget {
               builder: (_) => const PlayerScreen(),
               settings: settings,
             );
-          case SettingsScreen.routeName:
+          case DownloadManagerScreen.routeName:
             return MaterialPageRoute<void>(
-              builder: (_) => const SettingsScreen(),
+              builder: (_) => const DownloadManagerScreen(),
               settings: settings,
             );
           case SplashScreen.routeName:
@@ -50,5 +54,3 @@ class SmartPlayerProApp extends StatelessWidget {
     );
   }
 }
-
-

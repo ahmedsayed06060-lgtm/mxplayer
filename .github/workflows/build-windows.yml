@@ -32,6 +32,9 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Generate localizations
+        run: flutter gen-l10n
+
       - name: Build Windows app
         run: flutter build windows --release
 
@@ -40,3 +43,4 @@ jobs:
         with:
           name: windows-build
           path: build/windows/x64/runner/Release
+
