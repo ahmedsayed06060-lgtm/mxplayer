@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'dart:isolate';
 
 import 'package:file_picker/file_picker.dart';
@@ -54,26 +54,16 @@ class MediaScanService {
 
     if (Platform.isAndroid) {
       await _requestAndroidPermissions();
-      final commonRoots = <String>{
-        '/storage/emulated/0/Movies',
-        '/storage/emulated/0/DCIM',
-        '/storage/emulated/0/Download',
-        '/storage/emulated/0/Downloads',
-        '/storage/emulated/0/Videos',
-      };
+      const sharedRoot = '/storage/emulated/0';
+      if (Directory(sharedRoot).existsSync()) {
+        roots.add(sharedRoot);
+      }
       final externalDirs = await getExternalStorageDirectories();
       for (final directory in externalDirs ?? <Directory>[]) {
-        commonRoots.add(directory.path);
-      }
-      for (final path in commonRoots) {
-        if (Directory(path).existsSync()) {
-          roots.add(path);
-        }
+        roots.add(directory.path);
       }
     } else {
-      final home = Platform.environment['USERPROFILE'] ??
-          Platform.environment['HOME'] ??
-          '';
+      final home = Platform.environment['USERPROFILE'] ?? Platform.environment['HOME'] ?? '';
       final candidates = <String>[
         if (home.isNotEmpty) '$home${Platform.pathSeparator}Videos',
         if (home.isNotEmpty) '$home${Platform.pathSeparator}Downloads',
@@ -112,10 +102,7 @@ class MediaScanService {
       Permission.manageExternalStorage,
     ].request();
 
-    final anyGranted = statuses.values.any(
-      (status) => status.isGranted || status.isLimited,
-    );
-
+    final anyGranted = statuses.values.any((status) => status.isGranted || status.isLimited);
     if (!anyGranted) {
       throw FileSystemException('Storage access permission was denied.');
     }
@@ -140,6 +127,10 @@ List<Map<String, Object?>> _scanVideoFiles(List<String> roots) {
         }
 
         final path = entity.path;
+        if (_shouldSkipPath(path)) {
+          continue;
+        }
+
         final extension = _extensionOf(path).toLowerCase();
         if (!MediaScanService.supportedExtensions.contains(extension)) {
           continue;
@@ -166,6 +157,13 @@ List<Map<String, Object?>> _scanVideoFiles(List<String> roots) {
   return items;
 }
 
+bool _shouldSkipPath(String path) {
+  final normalized = path.replaceAll('\\', '/').toLowerCase();
+  return normalized.contains('/android/data/') ||
+      normalized.contains('/android/obb/') ||
+      normalized.contains('/.thumbnails/');
+}
+
 String _basename(String path) {
   final normalized = path.replaceAll('\\', '/');
   final parts = normalized.split('/').where((part) => part.isNotEmpty).toList();
@@ -183,5 +181,3 @@ String _extensionOf(String path) {
   final dot = normalized.lastIndexOf('.');
   return dot == -1 ? '' : normalized.substring(dot + 1);
 }
-
-

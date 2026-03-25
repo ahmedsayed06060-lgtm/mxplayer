@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -6,8 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
+import '../../../core/providers/database_provider.dart';
+import '../../../data/database/app_database.dart';
 import '../../../data/models/video_item.dart';
 import '../../favorites/controllers/favorites_controller.dart';
+import '../../playlists/controllers/playlist_controller.dart';
 import 'recent_playback_controller.dart';
 import '../models/playback_item.dart';
 import '../models/recent_playback_item.dart';
@@ -20,6 +23,9 @@ final sharedPlayerControllerProvider =
 class SharedPlayerState {
   const SharedPlayerState({
     this.current,
+    this.queue = const [],
+    this.currentQueueIndex,
+    this.repeatCurrent = false,
     this.isPlaying = false,
     this.position = Duration.zero,
     this.duration = Duration.zero,
@@ -35,6 +41,9 @@ class SharedPlayerState {
   });
 
   final PlaybackItem? current;
+  final List<PlaybackItem> queue;
+  final int? currentQueueIndex;
+  final bool repeatCurrent;
   final bool isPlaying;
   final Duration position;
   final Duration duration;
@@ -49,10 +58,15 @@ class SharedPlayerState {
   final String? subtitlePath;
 
   bool get hasMedia => current != null;
+  bool get hasNextInQueue => currentQueueIndex != null && currentQueueIndex! < queue.length - 1;
 
   SharedPlayerState copyWith({
     PlaybackItem? current,
     bool clearCurrent = false,
+    List<PlaybackItem>? queue,
+    int? currentQueueIndex,
+    bool clearQueueIndex = false,
+    bool? repeatCurrent,
     bool? isPlaying,
     Duration? position,
     Duration? duration,
@@ -69,6 +83,9 @@ class SharedPlayerState {
   }) {
     return SharedPlayerState(
       current: clearCurrent ? null : (current ?? this.current),
+      queue: queue ?? this.queue,
+      currentQueueIndex: clearQueueIndex ? null : (currentQueueIndex ?? this.currentQueueIndex),
+      repeatCurrent: repeatCurrent ?? this.repeatCurrent,
       isPlaying: isPlaying ?? this.isPlaying,
       position: position ?? this.position,
       duration: duration ?? this.duration,
@@ -88,9 +105,8 @@ class SharedPlayerState {
 class SharedPlayerController extends Notifier<SharedPlayerState> {
   late final Player player;
   late final VideoController videoController;
-  ProviderSubscription<bool>? _playingSub;
-  ProviderSubscription<Duration>? _positionSub;
-  ProviderSubscription<Duration>? _durationSub;
+  int _lastSavedSecond = -1;
+  bool _handlingCompletion = false;
 
   @override
   SharedPlayerState build() {
@@ -102,12 +118,30 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
     });
     player.stream.position.listen((position) {
       state = state.copyWith(position: position);
+      _persistProgressIfNeeded();
     });
     player.stream.duration.listen((duration) {
       state = state.copyWith(duration: duration);
     });
+    player.stream.completed.listen((completed) async {
+      if (!completed || _handlingCompletion) {
+        return;
+      }
+      _handlingCompletion = true;
+      try {
+        if (state.repeatCurrent && state.current != null) {
+          await player.seek(Duration.zero);
+          await player.play();
+        } else if (state.hasNextInQueue) {
+          await playNextInQueue();
+        }
+      } finally {
+        _handlingCompletion = false;
+      }
+    });
 
     ref.onDispose(() async {
+      await _persistProgress(force: true);
       await player.dispose();
     });
 
@@ -123,6 +157,40 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
         sourceType: PlaybackSourceType.local,
       ),
     );
+  }
+
+  Future<void> openVideoQueue(List<VideoItem> items, {required int startIndex}) async {
+    final queue = items
+        .map(
+          (item) => PlaybackItem(
+            id: item.id,
+            title: item.title,
+            uri: Uri.file(item.path).toString(),
+            sourceType: PlaybackSourceType.local,
+          ),
+        )
+        .toList(growable: false);
+    if (queue.isEmpty || startIndex < 0 || startIndex >= queue.length) {
+      return;
+    }
+    await _open(queue[startIndex], queue: queue, queueIndex: startIndex);
+  }
+
+  Future<void> openPlaylistQueue(List<PlaylistVideoRecord> items, {required int startIndex}) async {
+    final queue = items
+        .map(
+          (item) => PlaybackItem(
+            id: item.videoId,
+            title: item.title,
+            uri: Uri.file(item.path).toString(),
+            sourceType: PlaybackSourceType.local,
+          ),
+        )
+        .toList(growable: false);
+    if (queue.isEmpty || startIndex < 0 || startIndex >= queue.length) {
+      return;
+    }
+    await _open(queue[startIndex], queue: queue, queueIndex: startIndex);
   }
 
   Future<void> openNetwork({
@@ -141,9 +209,17 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
     );
   }
 
-  Future<void> _open(PlaybackItem item) async {
+  Future<void> _open(
+    PlaybackItem item, {
+    List<PlaybackItem>? queue,
+    int? queueIndex,
+  }) async {
+    await _persistProgress(force: true);
+    _lastSavedSecond = -1;
     state = state.copyWith(
       current: item,
+      queue: queue ?? state.queue,
+      currentQueueIndex: queueIndex,
       position: Duration.zero,
       duration: Duration.zero,
       clearSubtitlePath: true,
@@ -151,7 +227,11 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
       locked: false,
     );
     await player.open(Media(item.uri), play: true);
-    ref.read(recentPlaybackProvider.notifier).push(
+    final progress = await ref.read(appDatabaseProvider).loadWatchProgress(item.id);
+    if (progress != null && progress.positionMs > 0) {
+      await player.seek(Duration(milliseconds: progress.positionMs));
+    }
+    await ref.read(recentPlaybackProvider.notifier).push(
           RecentPlaybackItem(
             id: item.id,
             title: item.title,
@@ -162,9 +242,22 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
         );
   }
 
+  Future<void> playNextInQueue() async {
+    final nextIndex = state.currentQueueIndex == null ? null : state.currentQueueIndex! + 1;
+    if (nextIndex == null || nextIndex < 0 || nextIndex >= state.queue.length) {
+      return;
+    }
+    await _open(state.queue[nextIndex], queue: state.queue, queueIndex: nextIndex);
+  }
+
+  void toggleRepeatCurrent() {
+    state = state.copyWith(repeatCurrent: !state.repeatCurrent);
+  }
+
   Future<void> togglePlayPause() async {
     if (state.isPlaying) {
       await player.pause();
+      await _persistProgress(force: true);
     } else {
       await player.play();
     }
@@ -206,8 +299,16 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
   }
 
   Future<void> stop() async {
+    await _persistProgress(force: true);
     await player.stop();
-    state = state.copyWith(clearCurrent: true, isPlaying: false, position: Duration.zero, duration: Duration.zero);
+    state = state.copyWith(
+      clearCurrent: true,
+      queue: const [],
+      clearQueueIndex: true,
+      isPlaying: false,
+      position: Duration.zero,
+      duration: Duration.zero,
+    );
   }
 
   Future<void> pickSubtitleFile() async {
@@ -259,5 +360,32 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
       return;
     }
     ref.read(favoritesControllerProvider.notifier).toggle(current.id);
+  }
+
+  Future<void> _persistProgressIfNeeded() async {
+    final seconds = state.position.inSeconds;
+    if (seconds == _lastSavedSecond || seconds % 5 != 0) {
+      return;
+    }
+    _lastSavedSecond = seconds;
+    await _persistProgress();
+  }
+
+  Future<void> _persistProgress({bool force = false}) async {
+    final current = state.current;
+    if (current == null) {
+      return;
+    }
+    if (!force && state.position == Duration.zero) {
+      return;
+    }
+    await ref.read(appDatabaseProvider).saveWatchProgress(
+          id: current.id,
+          title: current.title,
+          path: current.uri,
+          isNetwork: current.sourceType != PlaybackSourceType.local,
+          positionMs: state.position.inMilliseconds,
+          durationMs: state.duration.inMilliseconds,
+        );
   }
 }

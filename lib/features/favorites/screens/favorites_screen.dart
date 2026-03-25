@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../data/models/video_item.dart';
@@ -8,6 +8,7 @@ import '../../library/controllers/library_controller.dart';
 import '../../player/controllers/player_controller.dart';
 import '../../player/controllers/recent_playback_controller.dart';
 import '../../player/screens/player_screen.dart';
+import '../../playlists/controllers/playlist_controller.dart';
 
 class FavoritesScreen extends ConsumerWidget {
   const FavoritesScreen({super.key});
@@ -18,6 +19,7 @@ class FavoritesScreen extends ConsumerWidget {
     final favoriteIds = ref.watch(favoritesControllerProvider);
     final snapshot = ref.watch(libraryControllerProvider).valueOrNull;
     final recent = ref.watch(recentPlaybackProvider);
+    final playlists = ref.watch(playlistControllerProvider);
     final videos = snapshot?.videos.where((video) => favoriteIds.contains(video.id)).toList() ?? const <VideoItem>[];
 
     return ListView(
@@ -44,6 +46,34 @@ class FavoritesScreen extends ConsumerWidget {
             ),
           ),
         const SizedBox(height: 20),
+        Text('Playlists', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 12),
+        if (playlists.playlists.isEmpty)
+          const Card(child: ListTile(title: Text('No playlists yet.')))
+        else
+          ...playlists.playlists.map(
+            (playlist) => Card(
+              child: ExpansionTile(
+                title: Text(playlist.name),
+                children: [
+                  for (var index = 0; index < (playlists.items[playlist.id] ?? const []).length; index++)
+                    ListTile(
+                      title: Text((playlists.items[playlist.id] ?? const [])[index].title),
+                      subtitle: Text((playlists.items[playlist.id] ?? const [])[index].path),
+                      trailing: const Icon(Icons.play_circle_outline_rounded),
+                      onTap: () async {
+                        final items = playlists.items[playlist.id] ?? <dynamic>[];
+                        await ref.read(sharedPlayerControllerProvider.notifier).openPlaylistQueue(items.cast(), startIndex: index);
+                        if (context.mounted) {
+                          Navigator.of(context).pushNamed(PlayerScreen.routeName);
+                        }
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ),
+        const SizedBox(height: 20),
         Text(l10n.recentlyPlayed, style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 12),
         if (recent.isEmpty)
@@ -62,3 +92,4 @@ class FavoritesScreen extends ConsumerWidget {
     );
   }
 }
+

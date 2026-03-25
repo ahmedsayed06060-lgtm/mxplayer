@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../data/models/video_folder.dart';
@@ -43,18 +43,18 @@ class FolderListScreen extends ConsumerWidget {
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Text(
-                '${folder.videoCount} ${l10n.items} � ${Formatters.fileSize(folder.totalSizeBytes)}\n${folder.path}',
+                '${folder.videoCount} ${l10n.items} • ${Formatters.fileSize(folder.totalSizeBytes)}\n${folder.path}',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             trailing: const Icon(Icons.play_arrow_rounded),
             onTap: () async {
-              final matches = snapshot?.videos.where((video) => video.folderPath == folder.path).toList() ?? const [];
+              final matches = snapshot?.videos.where((video) => video.folderPath == folder.path).toList() ?? <dynamic>[];
               if (matches.isEmpty) {
                 return;
               }
-              await ref.read(sharedPlayerControllerProvider.notifier).openVideoItem(matches.first);
+              await ref.read(sharedPlayerControllerProvider.notifier).openVideoQueue(matches.cast(), startIndex: 0);
               if (context.mounted) {
                 Navigator.of(context).pushNamed(PlayerScreen.routeName);
               }
@@ -65,3 +65,4 @@ class FolderListScreen extends ConsumerWidget {
     );
   }
 }
+

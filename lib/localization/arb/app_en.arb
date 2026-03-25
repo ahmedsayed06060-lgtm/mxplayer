@@ -1,4 +1,4 @@
-{
+﻿{
   "@@locale": "en",
   "appTitle": "Smart Player Pro",
   "videos": "Videos",
@@ -88,3 +88,4 @@
   "playerLocked": "Player locked. Tap the lock to unlock controls.",
   "pickLocalMedia": "Pick local media"
 }
+

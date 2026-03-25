@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
@@ -34,6 +34,7 @@ class _PlayerSurfaceState extends ConsumerState<PlayerSurface> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth <= 0 ? 1.0 : constraints.maxWidth;
+        final brightnessOverlay = ((1 - state.brightness) * 0.7).clamp(0.0, 0.7);
         return GestureDetector(
           onScaleUpdate: (details) {
             controller.setZoom(state.zoom * details.scale);
@@ -78,6 +79,10 @@ class _PlayerSurfaceState extends ConsumerState<PlayerSurface> {
                   ),
                 ),
               ),
+              if (brightnessOverlay > 0)
+                IgnorePointer(
+                  child: ColoredBox(color: Colors.black.withOpacity(brightnessOverlay)),
+                ),
               Row(
                 children: [
                   Expanded(

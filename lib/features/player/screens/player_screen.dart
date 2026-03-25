@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -62,9 +62,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   icon: Icon(isFavorite ? Icons.favorite : Icons.favorite_border),
                 ),
                 IconButton(
-                  onPressed: state.current == null
-                      ? null
-                      : () => _fullscreen ? _exitFullscreen() : _enterFullscreen(),
+                  onPressed: state.current == null ? null : () => _fullscreen ? _exitFullscreen() : _enterFullscreen(),
                   icon: const Icon(Icons.fullscreen),
                 ),
               ],
@@ -103,7 +101,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                     ],
                   ),
                 ),
-                if (!state.locked) _PlayerControls(fullscreen: _fullscreen, onFullscreenToggle: () => _fullscreen ? _exitFullscreen() : _enterFullscreen()),
+                if (!state.locked)
+                  _PlayerControls(
+                    fullscreen: _fullscreen,
+                    onFullscreenToggle: () => _fullscreen ? _exitFullscreen() : _enterFullscreen(),
+                  ),
               ],
             ),
     );
@@ -191,6 +193,11 @@ class _PlayerControls extends ConsumerWidget {
                     ],
                     child: _ControlChip(label: l10n.subtitles, icon: Icons.subtitles_outlined),
                   ),
+                  _RepeatChip(
+                    enabled: state.repeatCurrent,
+                    hasNext: state.hasNextInQueue,
+                    onTap: controller.toggleRepeatCurrent,
+                  ),
                   IconButton.outlined(
                     onPressed: onFullscreenToggle,
                     icon: Icon(fullscreen ? Icons.fullscreen_exit : Icons.fullscreen),
@@ -250,6 +257,43 @@ class _ControlChip extends StatelessWidget {
           const SizedBox(width: 8),
           Text(label),
         ],
+      ),
+    );
+  }
+}
+
+class _RepeatChip extends StatelessWidget {
+  const _RepeatChip({
+    required this.enabled,
+    required this.hasNext,
+    required this.onTap,
+  });
+
+  final bool enabled;
+  final bool hasNext;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = enabled ? 'Repeat 1' : (hasNext ? 'Autoplay Next' : 'Single');
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: enabled ? const Color(0xFF7CE0CC).withOpacity(0.2) : Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: enabled ? const Color(0xFF7CE0CC) : Colors.white24),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(enabled ? Icons.repeat_one_rounded : Icons.queue_play_next_rounded, size: 18),
+            const SizedBox(width: 8),
+            Text(label),
+          ],
+        ),
       ),
     );
   }

@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -311,3 +311,4 @@ class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
+

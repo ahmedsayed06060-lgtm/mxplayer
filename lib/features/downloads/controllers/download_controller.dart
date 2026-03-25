@@ -1,17 +1,25 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/providers/database_provider.dart';
 import '../../../data/models/download_item.dart';
 import '../../../services/download_service.dart';
 
 final downloadControllerProvider =
     StateNotifierProvider<DownloadController, List<DownloadItem>>(
-  (ref) => DownloadController(DownloadService()),
+  (ref) => DownloadController(ref, DownloadService()),
 );
 
 class DownloadController extends StateNotifier<List<DownloadItem>> {
-  DownloadController(this._service) : super(const []);
+  DownloadController(this._ref, this._service) : super(const []) {
+    _hydrate();
+  }
 
+  final Ref _ref;
   final DownloadService _service;
+
+  Future<void> _hydrate() async {
+    state = await _ref.read(appDatabaseProvider).loadDownloads();
+  }
 
   Future<void> add(String url) async {
     final id = DateTime.now().microsecondsSinceEpoch.toString();
@@ -25,29 +33,31 @@ class DownloadController extends StateNotifier<List<DownloadItem>> {
       progress: 0,
     );
     state = [queued, ...state];
+    await _ref.read(appDatabaseProvider).saveDownloadHistory(queued);
     final result = await _service.enqueue(id: id, url: url);
-    _replace(result);
+    await _replace(result);
   }
 
   Future<void> pause(DownloadItem item) async {
     await _service.pause(item.platformTaskId);
-    _replace(item.copyWith(status: DownloadStatus.paused));
+    await _replace(item.copyWith(status: DownloadStatus.paused));
   }
 
   Future<void> resume(DownloadItem item) async {
     await _service.resume(item.platformTaskId);
-    _replace(item.copyWith(status: DownloadStatus.running));
+    await _replace(item.copyWith(status: DownloadStatus.running));
   }
 
   Future<void> cancel(DownloadItem item) async {
     await _service.cancel(item.platformTaskId);
-    _replace(item.copyWith(status: DownloadStatus.canceled));
+    await _replace(item.copyWith(status: DownloadStatus.canceled));
   }
 
-  void _replace(DownloadItem item) {
+  Future<void> _replace(DownloadItem item) async {
     state = [
       for (final existing in state)
         if (existing.id == item.id) item else existing,
     ];
+    await _ref.read(appDatabaseProvider).saveDownloadHistory(item);
   }
 }
