@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/providers/locale_controller.dart';
@@ -15,12 +15,13 @@ class SmartPlayerProApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeControllerProvider);
+    final themeMode = ref.watch(themeModeControllerProvider);
 
     return MaterialApp(
       title: 'Smart Player Pro',
       debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.dark,
-      theme: AppTheme.darkTheme,
+      themeMode: themeMode,
+      theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,

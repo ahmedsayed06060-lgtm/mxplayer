@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 class AppTheme {
   const AppTheme._();
@@ -36,5 +36,31 @@ class AppTheme {
       ),
     );
   }
-}
 
+  static ThemeData get lightTheme {
+    const seedColor = Color(0xFF16A085);
+
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: seedColor,
+        brightness: Brightness.light,
+      ),
+      scaffoldBackgroundColor: const Color(0xFFF6F8FB),
+      appBarTheme: const AppBarTheme(
+        centerTitle: false,
+        elevation: 0,
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+      navigationBarTheme: const NavigationBarThemeData(
+        indicatorColor: Color(0xFFBDEBDF),
+      ),
+    );
+  }
+}

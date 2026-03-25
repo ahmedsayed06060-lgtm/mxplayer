@@ -1,12 +1,11 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/utils/formatters.dart';
 import '../../../../data/models/video_folder.dart';
 import '../../../../localization/generated/app_localizations.dart';
 import '../../../library/controllers/library_controller.dart';
-import '../../../player/controllers/player_controller.dart';
-import '../../../player/screens/player_screen.dart';
-import '../../../../core/utils/formatters.dart';
+import 'folder_videos_screen.dart';
 
 class FolderListScreen extends ConsumerWidget {
   const FolderListScreen({super.key, required this.folders});
@@ -48,16 +47,17 @@ class FolderListScreen extends ConsumerWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            trailing: const Icon(Icons.play_arrow_rounded),
-            onTap: () async {
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
               final matches = snapshot?.videos.where((video) => video.folderPath == folder.path).toList() ?? <dynamic>[];
-              if (matches.isEmpty) {
-                return;
-              }
-              await ref.read(sharedPlayerControllerProvider.notifier).openVideoQueue(matches.cast(), startIndex: 0);
-              if (context.mounted) {
-                Navigator.of(context).pushNamed(PlayerScreen.routeName);
-              }
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => FolderVideosScreen(
+                    folder: folder,
+                    videos: matches.cast(),
+                  ),
+                ),
+              );
             },
           ),
         );
@@ -65,4 +65,3 @@ class FolderListScreen extends ConsumerWidget {
     );
   }
 }
-

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers/locale_controller.dart';
@@ -14,6 +14,8 @@ class SettingsScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final locale = ref.watch(localeControllerProvider);
     final localeController = ref.read(localeControllerProvider.notifier);
+    final themeMode = ref.watch(themeModeControllerProvider);
+    final isDark = themeMode == ThemeMode.dark;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
@@ -38,10 +40,12 @@ class SettingsScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         Card(
-          child: ListTile(
-            leading: const Icon(Icons.dark_mode_outlined),
+          child: SwitchListTile(
+            secondary: Icon(isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined),
+            value: isDark,
             title: Text(l10n.theme),
-            subtitle: Text(l10n.useSystemTheme),
+            subtitle: Text(isDark ? l10n.themeDark : 'Light'),
+            onChanged: (_) => ref.read(themeModeControllerProvider.notifier).toggle(),
           ),
         ),
       ],
