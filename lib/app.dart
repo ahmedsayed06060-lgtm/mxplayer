@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'localization/generated/app_localizations.dart';
 
 import 'core/themes/app_theme.dart';
 import 'features/home/screens/home_screen.dart';
@@ -50,4 +50,5 @@ class SmartPlayerProApp extends StatelessWidget {
     );
   }
 }
+
 

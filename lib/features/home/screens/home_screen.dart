@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import '../../../localization/generated/app_localizations.dart';
 
 import '../../player/screens/player_screen.dart';
 import '../../settings/screens/settings_screen.dart';
@@ -81,4 +81,5 @@ class _NavigationCard extends StatelessWidget {
     );
   }
 }
+
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import '../../../localization/generated/app_localizations.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../home/screens/home_screen.dart';
@@ -52,4 +52,5 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 }
+
 
