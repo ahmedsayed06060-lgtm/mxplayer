@@ -1,5 +1,4 @@
 {
-  "@@locale": "ar",
   "appTitle": "سمارت بلاير برو",
   "videos": "الفيديوهات",
   "folders": "المجلدات",
@@ -13,7 +12,7 @@
   "languagePlaceholder": "يمكنك التبديل فوراً بين العربية والإنجليزية.",
   "playerPlaceholderTitle": "محرك التشغيل جاهز",
   "playerPlaceholderBody": "استخدم الإيماءات والترجمة وسرعة التشغيل ووضع ملء الشاشة.",
-  "splashTagline": "تشغيل احترافي للفيديوهات المحلية وIPTV والتنزيلات.",
+  "splashTagline": "تشغيل احترافي للفيديوهات المحلية و IPTV والتنزيلات.",
   "allVideos": "كل الفيديوهات",
   "storage": "التخزين",
   "selectFolder": "اختيار مجلد",

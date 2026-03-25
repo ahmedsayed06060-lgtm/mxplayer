@@ -11,8 +11,8 @@ import '../../library/controllers/library_controller.dart';
 import '../../library/folder_list/screens/folder_list_screen.dart';
 import '../../library/video_list/screens/video_list_screen.dart';
 import '../../player/controllers/player_controller.dart';
-import '../../player/screens/player_screen.dart';
 import '../../player/models/playback_item.dart';
+import '../../player/screens/player_screen.dart';
 import '../../settings/screens/settings_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -136,6 +136,8 @@ class _MiniPlayerBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final state = ref.watch(sharedPlayerControllerProvider);
     final controller = ref.read(sharedPlayerControllerProvider.notifier);
     if (!state.hasMedia) {
@@ -143,25 +145,24 @@ class _MiniPlayerBar extends ConsumerWidget {
     }
 
     return Material(
-      color: const Color(0xFF171A21),
+      color: colorScheme.surface,
       child: InkWell(
         onTap: () => Navigator.of(context).pushNamed(PlayerScreen.routeName),
-        child: Padding(
+        child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: theme.dividerColor.withOpacity(0.3))),
+          ),
           child: Row(
             children: [
               Container(
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1F2A37), Color(0xFF111827)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: colorScheme.primary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.play_circle_fill_rounded),
+                child: Icon(Icons.play_circle_fill_rounded, color: colorScheme.primary),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -169,11 +170,16 @@ class _MiniPlayerBar extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(state.current!.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(
+                      state.current!.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium,
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       '${Formatters.duration(state.position)} / ${Formatters.duration(state.duration)}',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      style: theme.textTheme.bodySmall,
                     ),
                   ],
                 ),
@@ -183,7 +189,9 @@ class _MiniPlayerBar extends ConsumerWidget {
                 icon: Icon(state.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
               ),
               IconButton(
-                onPressed: controller.stop,
+                onPressed: () async {
+                  await controller.stop();
+                },
                 icon: const Icon(Icons.close_rounded),
               ),
             ],
@@ -193,4 +201,3 @@ class _MiniPlayerBar extends ConsumerWidget {
     );
   }
 }
-

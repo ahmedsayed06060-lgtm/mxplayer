@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -34,13 +34,27 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-    setState(() => _fullscreen = true);
+    if (mounted) {
+      setState(() => _fullscreen = true);
+    }
   }
 
   Future<void> _exitFullscreen() async {
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     await SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-    setState(() => _fullscreen = false);
+    if (mounted) {
+      setState(() => _fullscreen = false);
+    }
+  }
+
+  Future<void> _closePlayer() async {
+    if (_fullscreen) {
+      await _exitFullscreen();
+    }
+    await ref.read(sharedPlayerControllerProvider.notifier).stop();
+    if (mounted && Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
   }
 
   @override
@@ -55,6 +69,11 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       appBar: _fullscreen
           ? null
           : AppBar(
+              leading: IconButton(
+                tooltip: l10n.close,
+                onPressed: _closePlayer,
+                icon: const Icon(Icons.close_rounded),
+              ),
               title: Text(state.current?.title ?? l10n.player),
               actions: [
                 IconButton(
@@ -105,6 +124,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   _PlayerControls(
                     fullscreen: _fullscreen,
                     onFullscreenToggle: () => _fullscreen ? _exitFullscreen() : _enterFullscreen(),
+                    onClose: _closePlayer,
                   ),
               ],
             ),
@@ -116,10 +136,12 @@ class _PlayerControls extends ConsumerWidget {
   const _PlayerControls({
     required this.fullscreen,
     required this.onFullscreenToggle,
+    required this.onClose,
   });
 
   final bool fullscreen;
   final VoidCallback onFullscreenToggle;
+  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -158,6 +180,16 @@ class _PlayerControls extends ConsumerWidget {
                 runSpacing: 12,
                 alignment: WrapAlignment.center,
                 children: [
+                  IconButton.outlined(
+                    tooltip: l10n.close,
+                    onPressed: onClose,
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                  IconButton.outlined(
+                    tooltip: 'Previous',
+                    onPressed: state.hasPreviousInQueue ? controller.playPreviousInQueue : null,
+                    icon: const Icon(Icons.skip_previous_rounded),
+                  ),
                   IconButton.filled(
                     onPressed: () => controller.seekRelative(const Duration(seconds: -10)),
                     icon: const Icon(Icons.replay_10_rounded),
@@ -169,6 +201,11 @@ class _PlayerControls extends ConsumerWidget {
                   IconButton.filled(
                     onPressed: () => controller.seekRelative(const Duration(seconds: 10)),
                     icon: const Icon(Icons.forward_10_rounded),
+                  ),
+                  IconButton.outlined(
+                    tooltip: 'Next',
+                    onPressed: state.hasNextInQueue ? controller.playNextInQueue : null,
+                    icon: const Icon(Icons.skip_next_rounded),
                   ),
                   PopupMenuButton<double>(
                     tooltip: l10n.playbackSpeed,

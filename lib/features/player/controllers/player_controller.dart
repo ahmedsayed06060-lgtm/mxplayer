@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -58,6 +58,7 @@ class SharedPlayerState {
   final String? subtitlePath;
 
   bool get hasMedia => current != null;
+  bool get hasPreviousInQueue => currentQueueIndex != null && currentQueueIndex! > 0;
   bool get hasNextInQueue => currentQueueIndex != null && currentQueueIndex! < queue.length - 1;
 
   SharedPlayerState copyWith({
@@ -250,6 +251,14 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
     await _open(state.queue[nextIndex], queue: state.queue, queueIndex: nextIndex);
   }
 
+  Future<void> playPreviousInQueue() async {
+    final previousIndex = state.currentQueueIndex == null ? null : state.currentQueueIndex! - 1;
+    if (previousIndex == null || previousIndex < 0 || previousIndex >= state.queue.length) {
+      return;
+    }
+    await _open(state.queue[previousIndex], queue: state.queue, queueIndex: previousIndex);
+  }
+
   void toggleRepeatCurrent() {
     state = state.copyWith(repeatCurrent: !state.repeatCurrent);
   }
@@ -389,3 +398,4 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
         );
   }
 }
+

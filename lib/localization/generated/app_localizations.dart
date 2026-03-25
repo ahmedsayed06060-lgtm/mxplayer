@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -129,7 +130,7 @@ class AppLocalizations {
       'languagePlaceholder': 'يمكنك التبديل فوراً بين العربية والإنجليزية.',
       'playerPlaceholderTitle': 'محرك التشغيل جاهز',
       'playerPlaceholderBody': 'استخدم الإيماءات والترجمة وسرعة التشغيل ووضع ملء الشاشة.',
-      'splashTagline': 'تشغيل احترافي للفيديوهات المحلية وIPTV والتنزيلات.',
+      'splashTagline': 'تشغيل احترافي للفيديوهات المحلية و IPTV والتنزيلات.',
       'allVideos': 'كل الفيديوهات',
       'storage': 'التخزين',
       'selectFolder': 'اختيار مجلد',
@@ -206,7 +207,17 @@ class AppLocalizations {
     },
   };
 
-  String _text(String key) => _values[locale.languageCode]?[key] ?? _values['en']![key] ?? key;
+  String _text(String key) {
+    final raw = _values[locale.languageCode]?[key] ?? _values['en']![key] ?? key;
+    if (locale.languageCode == 'ar') {
+      try {
+        return utf8.decode(latin1.encode(raw));
+      } catch (_) {
+        return raw;
+      }
+    }
+    return raw;
+  }
 
   String get appTitle => _text('appTitle');
   String get videos => _text('videos');

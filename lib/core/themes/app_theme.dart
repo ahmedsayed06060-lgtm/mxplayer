@@ -47,19 +47,28 @@ class AppTheme {
         seedColor: seedColor,
         brightness: Brightness.light,
       ),
-      scaffoldBackgroundColor: const Color(0xFFF6F8FB),
+      scaffoldBackgroundColor: const Color(0xFFF3F6FA),
       appBarTheme: const AppBarTheme(
         centerTitle: false,
         elevation: 0,
+        backgroundColor: Color(0xFFF3F6FA),
+        foregroundColor: Color(0xFF111827),
       ),
       cardTheme: CardThemeData(
+        color: Colors.white,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFFE5E7EB)),
         ),
       ),
       navigationBarTheme: const NavigationBarThemeData(
+        backgroundColor: Colors.white,
         indicatorColor: Color(0xFFBDEBDF),
+      ),
+      listTileTheme: const ListTileThemeData(
+        iconColor: Color(0xFF374151),
+        textColor: Color(0xFF111827),
       ),
     );
   }

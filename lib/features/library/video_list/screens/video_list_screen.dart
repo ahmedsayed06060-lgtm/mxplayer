@@ -1,4 +1,6 @@
-ï»¿import 'package:flutter/material.dart';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/utils/formatters.dart';
@@ -9,6 +11,7 @@ import '../../../player/controllers/player_controller.dart';
 import '../../../player/controllers/recent_playback_controller.dart';
 import '../../../player/screens/player_screen.dart';
 import '../../../playlists/controllers/playlist_controller.dart';
+import '../../controllers/library_controller.dart';
 import '../../controllers/library_view_controller.dart';
 import '../../models/library_view_state.dart';
 
@@ -60,7 +63,11 @@ class VideoListScreen extends ConsumerWidget {
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final video = filtered[index];
-                    return _VideoTile(video: video);
+                    return _VideoTile(
+                      video: video,
+                      queue: filtered,
+                      queueIndex: index,
+                    );
                   },
                 ),
         ),
@@ -158,9 +165,15 @@ class _SortChip extends StatelessWidget {
 }
 
 class _VideoTile extends ConsumerWidget {
-  const _VideoTile({required this.video});
+  const _VideoTile({
+    required this.video,
+    required this.queue,
+    required this.queueIndex,
+  });
 
   final VideoItem video;
+  final List<VideoItem> queue;
+  final int queueIndex;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -171,23 +184,12 @@ class _VideoTile extends ConsumerWidget {
     return Card(
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        leading: Container(
-          width: 72,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1F2A37), Color(0xFF111827)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: const Icon(Icons.play_circle_fill_rounded),
-        ),
+        leading: _VideoThumbnail(video: video),
         title: Text(video.title, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 8),
           child: Text(
-            '${video.folderName} â€¢ ${Formatters.duration(video.duration)} â€¢ ${Formatters.resolution(video.width, video.height)} â€¢ ${Formatters.fileSize(video.fileSizeBytes)}',
+            '${video.folderName} • ${Formatters.duration(video.duration)} • ${Formatters.resolution(video.width, video.height)} • ${Formatters.fileSize(video.fileSizeBytes)}',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -230,7 +232,7 @@ class _VideoTile extends ConsumerWidget {
           ],
         ),
         onTap: () async {
-          await ref.read(sharedPlayerControllerProvider.notifier).openVideoItem(video);
+          await ref.read(sharedPlayerControllerProvider.notifier).openVideoQueue(queue, startIndex: queueIndex);
           if (context.mounted) {
             Navigator.of(context).pushNamed(PlayerScreen.routeName);
           }
@@ -275,6 +277,45 @@ class _VideoTile extends ConsumerWidget {
             child: const Text('Save'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _VideoThumbnail extends ConsumerWidget {
+  const _VideoThumbnail({required this.video});
+
+  final VideoItem video;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final thumbnail = ref.watch(videoThumbnailProvider(video));
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 92,
+        height: 68,
+        color: const Color(0xFF111827),
+        child: thumbnail.when(
+          data: (path) {
+            if (path != null && File(path).existsSync()) {
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.file(File(path), fit: BoxFit.cover),
+                  const Align(
+                    alignment: Alignment.center,
+                    child: Icon(Icons.play_circle_fill_rounded, color: Colors.white70, size: 28),
+                  ),
+                ],
+              );
+            }
+            return const Icon(Icons.movie_creation_outlined, color: Colors.white70);
+          },
+          loading: () => const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+          error: (_, __) => const Icon(Icons.broken_image_outlined, color: Colors.white70),
+        ),
       ),
     );
   }
