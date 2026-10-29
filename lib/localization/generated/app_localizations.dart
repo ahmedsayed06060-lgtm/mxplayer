@@ -52,6 +52,9 @@ class AppLocalizations {
       'addDownload': 'Download',
       'openDownloads': 'Downloads',
       'downloadsEmpty': 'Nothing downloaded yet',
+      'openStream': 'Open stream',
+      'streamUrl': 'Stream URL',
+      'streamHint': 'Paste a direct video or live stream link',
       'search': 'Search',
       'searchVideos': 'Search videos',
       'searchHint': 'Search by name, folder or format',
@@ -212,6 +215,9 @@ class AppLocalizations {
       'addDownload': 'تنزيل',
       'openDownloads': 'التنزيلات',
       'downloadsEmpty': 'لا توجد تنزيلات بعد',
+      'openStream': 'فتح بث',
+      'streamUrl': 'رابط البث',
+      'streamHint': 'ألصق رابط فيديو مباشر أو بث حي',
       'search': 'بحث',
       'searchVideos': 'ابحث في الفيديوهات',
       'searchHint': 'ابحث بالاسم أو المجلد أو الصيغة',
@@ -377,6 +383,9 @@ class AppLocalizations {
   String get addDownload => _text('addDownload');
   String get openDownloads => _text('openDownloads');
   String get downloadsEmpty => _text('downloadsEmpty');
+  String get openStream => _text('openStream');
+  String get streamUrl => _text('streamUrl');
+  String get streamHint => _text('streamHint');
   String get search => _text('search');
   String get searchVideos => _text('searchVideos');
   String get searchHint => _text('searchHint');

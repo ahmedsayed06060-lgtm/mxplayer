@@ -102,6 +102,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  Future<void> _openStream() async {
+    final TextEditingController controller = TextEditingController();
+    final String? url = await showDialog<String>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        final AppLocalizations l10n = AppLocalizations.of(dialogContext)!;
+        return AlertDialog(
+          title: Text(l10n.openStream),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            keyboardType: TextInputType.url,
+            decoration: InputDecoration(labelText: l10n.streamUrl, hintText: l10n.streamHint),
+            onSubmitted: (String value) => Navigator.of(dialogContext).pop(value),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(controller.text),
+              child: Text(l10n.play),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    final String target = (url ?? '').trim();
+    if (target.isEmpty || !mounted) {
+      return;
+    }
+    final Uri? uri = Uri.tryParse(target);
+    final String title = (uri == null || uri.pathSegments.isEmpty)
+        ? target
+        : uri.pathSegments.last;
+    await ref.read(sharedPlayerControllerProvider.notifier).openNetwork(
+          id: target,
+          title: title.isEmpty ? target : title,
+          url: target,
+          type: PlaybackSourceType.network,
+        );
+    if (mounted) {
+      await Navigator.of(context).pushNamed(PlayerScreen.routeName);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
@@ -147,6 +195,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ref.read(libraryControllerProvider.notifier).pickAndScanDirectory(),
                     onRefresh: () => ref.read(libraryControllerProvider.notifier).refresh(),
                     onOpenFile: _openLocalFile,
+                    onOpenStream: _openStream,
                     onOpenDownloads: () =>
                         Navigator.of(context).pushNamed(DownloadManagerScreen.routeName),
                   ),
@@ -229,6 +278,7 @@ class _TopBar extends ConsumerWidget {
     required this.onPickFolder,
     required this.onRefresh,
     required this.onOpenFile,
+    required this.onOpenStream,
     required this.onOpenDownloads,
   });
 
@@ -241,6 +291,7 @@ class _TopBar extends ConsumerWidget {
   final VoidCallback onPickFolder;
   final VoidCallback onRefresh;
   final VoidCallback onOpenFile;
+  final VoidCallback onOpenStream;
   final VoidCallback onOpenDownloads;
 
   @override
@@ -336,6 +387,9 @@ class _TopBar extends ConsumerWidget {
                 case 'file':
                   onOpenFile();
                   break;
+                case 'stream':
+                  onOpenStream();
+                  break;
                 case 'downloads':
                   onOpenDownloads();
                   break;
@@ -353,6 +407,10 @@ class _TopBar extends ConsumerWidget {
               PopupMenuItem<String>(
                 value: 'file',
                 child: _menuRow(Icons.play_circle_outline_rounded, l10n.pickLocalMedia),
+              ),
+              PopupMenuItem<String>(
+                value: 'stream',
+                child: _menuRow(Icons.podcasts_rounded, l10n.openStream),
               ),
               PopupMenuItem<String>(
                 value: 'downloads',

@@ -47,18 +47,24 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
   bool _seekPulseForward = true;
   bool _seekPulseVisible = false;
 
+  Timer? _resumeTimer;
+  bool _showResumeHint = false;
+  Duration _resumePosition = Duration.zero;
+
   @override
   void initState() {
     super.initState();
     unawaited(_applyImmersive(true));
     _scheduleAutoHide();
     _enableWakelock();
+    _resumeTimer = Timer(const Duration(milliseconds: 900), _maybeShowResumeHint);
   }
 
   @override
   void dispose() {
     _hideTimer?.cancel();
     _hudTimer?.cancel();
+    _resumeTimer?.cancel();
     unawaited(_applyImmersive(false));
     unawaited(WakelockPlus.disable());
     super.dispose();
@@ -143,6 +149,34 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
       }
       setState(() => _hudKind = null);
     });
+  }
+
+  void _maybeShowResumeHint() {
+    if (!mounted) {
+      return;
+    }
+    final SharedPlayerState current = ref.read(sharedPlayerControllerProvider);
+    if (current.position.inSeconds < 8 || current.duration.inMilliseconds == 0) {
+      return;
+    }
+    setState(() {
+      _resumePosition = current.position;
+      _showResumeHint = true;
+    });
+    _resumeTimer = Timer(const Duration(seconds: 9), _dismissResumeHint);
+  }
+
+  void _dismissResumeHint() {
+    _resumeTimer?.cancel();
+    if (!mounted || !_showResumeHint) {
+      return;
+    }
+    setState(() => _showResumeHint = false);
+  }
+
+  Future<void> _restartFromBeginning() async {
+    await ref.read(sharedPlayerControllerProvider.notifier).seekTo(Duration.zero);
+    _dismissResumeHint();
   }
 
   Future<void> _minimize() async {
@@ -384,6 +418,53 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                   opacity: _controlsVisible ? 1 : 0,
                   duration: const Duration(milliseconds: 180),
                   child: _buildBottomControls(context, state, controller, l10n),
+                ),
+              ),
+            ),
+          if (_showResumeHint && !state.locked)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 132),
+                child: MxSurface(
+                  radius: 14,
+                  color: Colors.black.withOpacity(0.78),
+                  border: false,
+                  padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      const Icon(Icons.restore_rounded, size: 18, color: MxColors.brand),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          '${l10n.resumeFrom} ${Formatters.duration(_resumePosition)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      TextButton(
+                        onPressed: _restartFromBeginning,
+                        style: TextButton.styleFrom(
+                          foregroundColor: MxColors.brand,
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                        ),
+                        child: Text(
+                          l10n.restartFromBeginning,
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: _dismissResumeHint,
+                        visualDensity: VisualDensity.compact,
+                        iconSize: 16,
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
