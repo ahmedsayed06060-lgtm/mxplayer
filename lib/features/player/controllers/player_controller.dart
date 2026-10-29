@@ -6,14 +6,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
+import '../../../core/constants/app_constants.dart';
 import '../../../core/providers/database_provider.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/models/video_item.dart';
 import '../../favorites/controllers/favorites_controller.dart';
 import '../../playlists/controllers/playlist_controller.dart';
+import '../../settings/controllers/playback_preferences.dart';
 import 'recent_playback_controller.dart';
 import '../models/playback_item.dart';
 import '../models/recent_playback_item.dart';
+
+/// Screen fitting modes supported by the player (mirrors MX Player's menu).
+enum PlayerAspectMode {
+  fit,
+  crop,
+  stretch,
+  original,
+}
 
 final sharedPlayerControllerProvider =
     NotifierProvider<SharedPlayerController, SharedPlayerState>(
@@ -27,6 +37,7 @@ class SharedPlayerState {
     this.currentQueueIndex,
     this.repeatCurrent = false,
     this.isPlaying = false,
+    this.isBuffering = false,
     this.position = Duration.zero,
     this.duration = Duration.zero,
     this.volume = 100,
@@ -38,6 +49,11 @@ class SharedPlayerState {
     this.subtitleFontSize = 18,
     this.subtitleColor = Colors.white,
     this.subtitlePath,
+    this.subtitlesEnabled = true,
+    this.aspectMode = PlayerAspectMode.fit,
+    this.nightMode = false,
+    this.videoWidth,
+    this.videoHeight,
   });
 
   final PlaybackItem? current;
@@ -45,6 +61,7 @@ class SharedPlayerState {
   final int? currentQueueIndex;
   final bool repeatCurrent;
   final bool isPlaying;
+  final bool isBuffering;
   final Duration position;
   final Duration duration;
   final double volume;
@@ -56,10 +73,27 @@ class SharedPlayerState {
   final double subtitleFontSize;
   final Color subtitleColor;
   final String? subtitlePath;
+  final bool subtitlesEnabled;
+  final PlayerAspectMode aspectMode;
+  final bool nightMode;
+  final int? videoWidth;
+  final int? videoHeight;
 
   bool get hasMedia => current != null;
   bool get hasPreviousInQueue => currentQueueIndex != null && currentQueueIndex! > 0;
   bool get hasNextInQueue => currentQueueIndex != null && currentQueueIndex! < queue.length - 1;
+
+  double get progress {
+    if (duration.inMilliseconds <= 0) {
+      return 0;
+    }
+    return (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0).toDouble();
+  }
+
+  Duration get remaining {
+    final Duration left = duration - position;
+    return left < Duration.zero ? Duration.zero : left;
+  }
 
   SharedPlayerState copyWith({
     PlaybackItem? current,
@@ -69,6 +103,7 @@ class SharedPlayerState {
     bool clearQueueIndex = false,
     bool? repeatCurrent,
     bool? isPlaying,
+    bool? isBuffering,
     Duration? position,
     Duration? duration,
     double? volume,
@@ -81,6 +116,11 @@ class SharedPlayerState {
     Color? subtitleColor,
     String? subtitlePath,
     bool clearSubtitlePath = false,
+    bool? subtitlesEnabled,
+    PlayerAspectMode? aspectMode,
+    bool? nightMode,
+    int? videoWidth,
+    int? videoHeight,
   }) {
     return SharedPlayerState(
       current: clearCurrent ? null : (current ?? this.current),
@@ -88,6 +128,7 @@ class SharedPlayerState {
       currentQueueIndex: clearQueueIndex ? null : (currentQueueIndex ?? this.currentQueueIndex),
       repeatCurrent: repeatCurrent ?? this.repeatCurrent,
       isPlaying: isPlaying ?? this.isPlaying,
+      isBuffering: isBuffering ?? this.isBuffering,
       position: position ?? this.position,
       duration: duration ?? this.duration,
       volume: volume ?? this.volume,
@@ -99,6 +140,11 @@ class SharedPlayerState {
       subtitleFontSize: subtitleFontSize ?? this.subtitleFontSize,
       subtitleColor: subtitleColor ?? this.subtitleColor,
       subtitlePath: clearSubtitlePath ? null : (subtitlePath ?? this.subtitlePath),
+      subtitlesEnabled: subtitlesEnabled ?? this.subtitlesEnabled,
+      aspectMode: aspectMode ?? this.aspectMode,
+      nightMode: nightMode ?? this.nightMode,
+      videoWidth: videoWidth ?? this.videoWidth,
+      videoHeight: videoHeight ?? this.videoHeight,
     );
   }
 }
@@ -108,33 +154,50 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
   late final VideoController videoController;
   int _lastSavedSecond = -1;
   bool _handlingCompletion = false;
+  bool _disposed = false;
+  double? _speedBeforeBoost;
 
   @override
   SharedPlayerState build() {
-    player = Player(configuration: const PlayerConfiguration(title: 'Smart Player Pro'));
+    final PlaybackPreferences prefs = ref.read(playbackPreferencesProvider);
+    player = Player(
+      configuration: PlayerConfiguration(title: AppConstants.appName),
+    );
     videoController = VideoController(player);
 
-    player.stream.playing.listen((playing) {
+    player.stream.playing.listen((bool playing) {
       state = state.copyWith(isPlaying: playing);
     });
-    player.stream.position.listen((position) {
+    player.stream.buffering.listen((bool buffering) {
+      state = state.copyWith(isBuffering: buffering);
+    });
+    player.stream.position.listen((Duration position) {
       state = state.copyWith(position: position);
       _persistProgressIfNeeded();
     });
-    player.stream.duration.listen((duration) {
+    player.stream.duration.listen((Duration duration) {
       state = state.copyWith(duration: duration);
     });
-    player.stream.completed.listen((completed) async {
+    player.stream.width.listen((int? width) {
+      state = state.copyWith(videoWidth: width);
+    });
+    player.stream.height.listen((int? height) {
+      state = state.copyWith(videoHeight: height);
+    });
+    player.stream.completed.listen((bool completed) async {
       if (!completed || _handlingCompletion) {
         return;
       }
       _handlingCompletion = true;
       try {
+        final PlaybackPreferences preferences = ref.read(playbackPreferencesProvider);
         if (state.repeatCurrent && state.current != null) {
           await player.seek(Duration.zero);
           await player.play();
-        } else if (state.hasNextInQueue) {
+        } else if (preferences.autoPlayNext && state.hasNextInQueue) {
           await playNextInQueue();
+        } else {
+          state = state.copyWith(isPlaying: false);
         }
       } finally {
         _handlingCompletion = false;
@@ -142,11 +205,12 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
     });
 
     ref.onDispose(() async {
+      _disposed = true;
       await _persistProgress(force: true);
       await player.dispose();
     });
 
-    return const SharedPlayerState();
+    return SharedPlayerState(aspectMode: PlayerAspectMode.fit, nightMode: prefs.nightMode);
   }
 
   Future<void> openVideoItem(VideoItem item) async {
@@ -161,9 +225,9 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
   }
 
   Future<void> openVideoQueue(List<VideoItem> items, {required int startIndex}) async {
-    final queue = items
+    final List<PlaybackItem> queue = items
         .map(
-          (item) => PlaybackItem(
+          (VideoItem item) => PlaybackItem(
             id: item.id,
             title: item.title,
             uri: Uri.file(item.path).toString(),
@@ -178,9 +242,9 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
   }
 
   Future<void> openPlaylistQueue(List<PlaylistVideoRecord> items, {required int startIndex}) async {
-    final queue = items
+    final List<PlaybackItem> queue = items
         .map(
-          (item) => PlaybackItem(
+          (PlaylistVideoRecord item) => PlaybackItem(
             id: item.videoId,
             title: item.title,
             uri: Uri.file(item.path).toString(),
@@ -215,23 +279,35 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
     List<PlaybackItem>? queue,
     int? queueIndex,
   }) async {
+    final PlaybackPreferences prefs = ref.read(playbackPreferencesProvider);
     await _persistProgress(force: true);
     _lastSavedSecond = -1;
     state = state.copyWith(
       current: item,
-      queue: queue ?? state.queue,
-      currentQueueIndex: queueIndex,
+      queue: queue ?? <PlaybackItem>[item],
+      currentQueueIndex: queueIndex ?? 0,
       position: Duration.zero,
       duration: Duration.zero,
+      isPlaying: true,
       clearSubtitlePath: true,
       zoom: 1,
       locked: false,
+      playbackSpeed: prefs.defaultSpeed,
+      nightMode: prefs.nightMode,
     );
+
     await player.open(Media(item.uri), play: true);
-    final progress = await ref.read(appDatabaseProvider).loadWatchProgress(item.id);
-    if (progress != null && progress.positionMs > 0) {
-      await player.seek(Duration(milliseconds: progress.positionMs));
+    if (prefs.defaultSpeed != 1.0) {
+      await player.setRate(prefs.defaultSpeed);
     }
+
+    if (prefs.rememberPosition) {
+      final WatchProgressRecord? progress = await ref.read(appDatabaseProvider).loadWatchProgress(item.id);
+      if (progress != null && progress.positionMs > 3000) {
+        await player.seek(Duration(milliseconds: progress.positionMs));
+      }
+    }
+
     await ref.read(recentPlaybackProvider.notifier).push(
           RecentPlaybackItem(
             id: item.id,
@@ -244,7 +320,7 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
   }
 
   Future<void> playNextInQueue() async {
-    final nextIndex = state.currentQueueIndex == null ? null : state.currentQueueIndex! + 1;
+    final int? nextIndex = state.currentQueueIndex == null ? null : state.currentQueueIndex! + 1;
     if (nextIndex == null || nextIndex < 0 || nextIndex >= state.queue.length) {
       return;
     }
@@ -252,7 +328,7 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
   }
 
   Future<void> playPreviousInQueue() async {
-    final previousIndex = state.currentQueueIndex == null ? null : state.currentQueueIndex! - 1;
+    final int? previousIndex = state.currentQueueIndex == null ? null : state.currentQueueIndex! - 1;
     if (previousIndex == null || previousIndex < 0 || previousIndex >= state.queue.length) {
       return;
     }
@@ -272,13 +348,33 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
     }
   }
 
+  /// MX Player's long press gesture: temporarily play at 2x.
+  Future<void> startSpeedBoost() async {
+    if (_speedBeforeBoost != null) {
+      return;
+    }
+    _speedBeforeBoost = state.playbackSpeed;
+    await player.setRate(2.0);
+    state = state.copyWith(playbackSpeed: 2.0);
+  }
+
+  Future<void> endSpeedBoost() async {
+    final double? previous = _speedBeforeBoost;
+    if (previous == null) {
+      return;
+    }
+    _speedBeforeBoost = null;
+    await player.setRate(previous);
+    state = state.copyWith(playbackSpeed: previous);
+  }
+
   Future<void> seekTo(Duration position) async {
     await player.seek(position);
   }
 
   Future<void> seekRelative(Duration delta) async {
-    final target = state.position + delta;
-    final clamped = target < Duration.zero
+    final Duration target = state.position + delta;
+    final Duration clamped = target < Duration.zero
         ? Duration.zero
         : (state.duration > Duration.zero && target > state.duration ? state.duration : target);
     await player.seek(clamped);
@@ -290,13 +386,13 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
   }
 
   Future<void> setVolume(double volume) async {
-    final clamped = volume.clamp(0, 100).toDouble();
+    final double clamped = volume.clamp(0, 100).toDouble();
     await player.setVolume(clamped);
     state = state.copyWith(volume: clamped);
   }
 
   void setBrightness(double value) {
-    state = state.copyWith(brightness: value.clamp(0, 1).toDouble());
+    state = state.copyWith(brightness: value.clamp(0.12, 1).toDouble());
   }
 
   void setZoom(double value) {
@@ -307,12 +403,35 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
     state = state.copyWith(locked: !state.locked);
   }
 
+  void setAspectMode(PlayerAspectMode mode) {
+    state = state.copyWith(aspectMode: mode);
+  }
+
+  void cycleAspectMode() {
+    final List<PlayerAspectMode> modes = PlayerAspectMode.values;
+    final int next = (modes.indexOf(state.aspectMode) + 1) % modes.length;
+    state = state.copyWith(aspectMode: modes[next]);
+  }
+
+  void toggleNightMode() {
+    state = state.copyWith(nightMode: !state.nightMode);
+  }
+
+  Future<void> setSubtitlesEnabled(bool enabled) async {
+    state = state.copyWith(subtitlesEnabled: enabled);
+    if (enabled) {
+      await player.setSubtitleTrack(SubtitleTrack.auto());
+    } else {
+      await player.setSubtitleTrack(SubtitleTrack.no());
+    }
+  }
+
   Future<void> stop() async {
     await _persistProgress(force: true);
     await player.stop();
     state = state.copyWith(
       clearCurrent: true,
-      queue: const [],
+      queue: const <PlaybackItem>[],
       clearQueueIndex: true,
       isPlaying: false,
       position: Duration.zero,
@@ -321,31 +440,32 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
   }
 
   Future<void> pickSubtitleFile() async {
-    final result = await FilePicker.platform.pickFiles(
+    final FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['srt', 'ass', 'vtt'],
+      allowedExtensions: <String>['srt', 'ass', 'vtt', 'ssa', 'sub'],
     );
-    final path = result?.files.single.path;
+    final String? path = result?.files.single.path;
     if (path == null || path.isEmpty) {
       return;
     }
     await player.setSubtitleTrack(SubtitleTrack.uri(Uri.file(path).toString()));
-    state = state.copyWith(subtitlePath: path);
+    state = state.copyWith(subtitlePath: path, subtitlesEnabled: true);
   }
 
   Future<void> autoDetectSubtitle() async {
-    final current = state.current;
+    final PlaybackItem? current = state.current;
     if (current == null || current.sourceType != PlaybackSourceType.local) {
       return;
     }
-    final file = File(Uri.parse(current.uri).toFilePath());
-    final parent = file.parent;
-    final basename = file.uri.pathSegments.isEmpty ? file.path : file.uri.pathSegments.last.split('.').first;
-    for (final ext in ['srt', 'ass', 'vtt']) {
-      final candidate = File('${parent.path}${Platform.pathSeparator}$basename.$ext');
+    final File file = File(Uri.parse(current.uri).toFilePath());
+    final Directory parent = file.parent;
+    final String basename =
+        file.uri.pathSegments.isEmpty ? file.path : file.uri.pathSegments.last.split('.').first;
+    for (final String ext in <String>['srt', 'ass', 'vtt']) {
+      final File candidate = File('${parent.path}${Platform.pathSeparator}$basename.$ext');
       if (candidate.existsSync()) {
         await player.setSubtitleTrack(SubtitleTrack.uri(Uri.file(candidate.path).toString()));
-        state = state.copyWith(subtitlePath: candidate.path);
+        state = state.copyWith(subtitlePath: candidate.path, subtitlesEnabled: true);
         break;
       }
     }
@@ -364,7 +484,7 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
   }
 
   void toggleFavoriteCurrent() {
-    final current = state.current;
+    final PlaybackItem? current = state.current;
     if (current == null) {
       return;
     }
@@ -372,7 +492,10 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
   }
 
   Future<void> _persistProgressIfNeeded() async {
-    final seconds = state.position.inSeconds;
+    if (_disposed) {
+      return;
+    }
+    final int seconds = state.position.inSeconds;
     if (seconds == _lastSavedSecond || seconds % 5 != 0) {
       return;
     }
@@ -381,8 +504,11 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
   }
 
   Future<void> _persistProgress({bool force = false}) async {
-    final current = state.current;
+    final PlaybackItem? current = state.current;
     if (current == null) {
+      return;
+    }
+    if (_disposed && !force) {
       return;
     }
     if (!force && state.position == Duration.zero) {
@@ -396,6 +522,12 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
           positionMs: state.position.inMilliseconds,
           durationMs: state.duration.inMilliseconds,
         );
+    if (!_disposed) {
+      ref.read(recentPlaybackProvider.notifier).updateProgress(
+            current.id,
+            positionMs: state.position.inMilliseconds,
+            durationMs: state.duration.inMilliseconds,
+          );
+    }
   }
 }
-

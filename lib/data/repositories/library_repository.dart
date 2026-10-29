@@ -52,11 +52,30 @@ class LibraryRepository {
 
   Future<String?> buildThumbnail(VideoItem item) => _probeService.buildThumbnail(item);
 
+  /// Probes metadata in small parallel batches to keep the first paint fast.
+  ///
+  /// Very large libraries are capped so the scan never blocks the UI for
+  /// minutes; unchecked files still play, they simply show no duration badge.
+  static const int _maxProbedItems = 120;
+  static const int _probeConcurrency = 3;
+
   Future<List<VideoItem>> _enrich(List<VideoItem> items) async {
-    final results = <VideoItem>[];
-    for (final item in items) {
-      results.add(await _probeService.enrich(item));
+    if (items.isEmpty) {
+      return items;
     }
+    final List<VideoItem> results = List<VideoItem>.of(items);
+    final int limit = items.length < _maxProbedItems ? items.length : _maxProbedItems;
+
+    for (int start = 0; start < limit; start += _probeConcurrency) {
+      final int end = (start + _probeConcurrency) > limit ? limit : start + _probeConcurrency;
+      final List<VideoItem> batch = await Future.wait<VideoItem>(<Future<VideoItem>>[
+        for (int index = start; index < end; index++) _probeService.enrich(items[index]),
+      ]);
+      for (int index = start; index < end; index++) {
+        results[index] = batch[index - start];
+      }
+    }
+
     return results;
   }
 

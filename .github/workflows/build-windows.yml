@@ -35,6 +35,10 @@ jobs:
       - name: Generate localizations
         run: flutter gen-l10n
 
+      - name: Analyze
+        continue-on-error: true
+        run: flutter analyze
+
       - name: Build Windows app
         run: flutter build windows --release
 
@@ -43,4 +47,3 @@ jobs:
         with:
           name: windows-build
           path: build/windows/x64/runner/Release
-
