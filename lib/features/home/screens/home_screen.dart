@@ -2,18 +2,25 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/utils/formatters.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../core/themes/app_theme.dart';
+import '../../../core/widgets/mx_common.dart';
+import '../../../data/models/library_snapshot.dart';
+import '../../../data/models/video_item.dart';
 import '../../../localization/generated/app_localizations.dart';
 import '../../downloads/screens/download_manager_screen.dart';
 import '../../favorites/screens/favorites_screen.dart';
 import '../../iptv/screens/iptv_screen.dart';
 import '../../library/controllers/library_controller.dart';
+import '../../library/controllers/library_view_controller.dart';
 import '../../library/folder_list/screens/folder_list_screen.dart';
+import '../../library/models/library_view_state.dart';
 import '../../library/video_list/screens/video_list_screen.dart';
 import '../../player/controllers/player_controller.dart';
 import '../../player/models/playback_item.dart';
 import '../../player/screens/player_screen.dart';
 import '../../settings/screens/settings_screen.dart';
+import '../widgets/mini_player_bar.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -26,14 +33,79 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _index = 0;
+  bool _searchOpen = false;
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
+
+  void _selectTab(int index) {
+    if (_index == index) {
+      return;
+    }
+    if (_searchOpen) {
+      _closeSearch();
+    }
+    setState(() => _index = index);
+  }
+
+  void _openSearch() {
+    setState(() => _searchOpen = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _searchFocus.requestFocus());
+  }
+
+  void _closeSearch() {
+    _searchController.clear();
+    ref.read(libraryViewControllerProvider.notifier).clearSearch();
+    setState(() => _searchOpen = false);
+  }
+
+  Future<void> _openLocalFile() async {
+    final FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: AppConstants.videoExtensions,
+    );
+    final String? path = result?.files.single.path;
+    if (path == null) {
+      return;
+    }
+    final LibrarySnapshot? snapshot = ref.read(libraryControllerProvider).valueOrNull;
+    VideoItem? match;
+    if (snapshot != null) {
+      for (final VideoItem video in snapshot.videos) {
+        if (video.path == path) {
+          match = video;
+          break;
+        }
+      }
+    }
+
+    final SharedPlayerController controller = ref.read(sharedPlayerControllerProvider.notifier);
+    if (match != null) {
+      await controller.openVideoItem(match!);
+    } else {
+      await controller.openNetwork(
+        id: path,
+        title: result?.files.single.name ?? path.split(RegExp(r'[/\\]')).last,
+        url: Uri.file(path).toString(),
+        type: PlaybackSourceType.local,
+      );
+    }
+    if (mounted) {
+      await Navigator.of(context).pushNamed(PlayerScreen.routeName);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final libraryState = ref.watch(libraryControllerProvider);
-    final playerState = ref.watch(sharedPlayerControllerProvider);
-
-    final titles = [
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final bool wide = MediaQuery.sizeOf(context).width >= 900;
+    final List<String> titles = <String>[
       l10n.videos,
       l10n.folders,
       l10n.iptv,
@@ -42,157 +114,440 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(titles[_index]),
-        actions: [
-          if (_index <= 1)
-            IconButton(
-              tooltip: l10n.selectFolder,
-              onPressed: () {
-                ref.read(libraryControllerProvider.notifier).pickAndScanDirectory();
-              },
-              icon: const Icon(Icons.create_new_folder_outlined),
+      body: SafeArea(
+        bottom: false,
+        child: Row(
+          children: <Widget>[
+            if (wide)
+              _SideRail(
+                index: _index,
+                titles: titles,
+                onSelect: _selectTab,
+                onDownloads: () => Navigator.of(context).pushNamed(DownloadManagerScreen.routeName),
+              ),
+            Expanded(
+              child: Column(
+                children: <Widget>[
+                  _TopBar(
+                    title: titles[_index],
+                    index: _index,
+                    searchOpen: _searchOpen,
+                    searchController: _searchController,
+                    searchFocus: _searchFocus,
+                    onSearchToggle: () {
+                      if (_searchOpen) {
+                        _closeSearch();
+                      } else {
+                        _openSearch();
+                      }
+                    },
+                    onPickFolder: () =>
+                        ref.read(libraryControllerProvider.notifier).pickAndScanDirectory(),
+                    onRefresh: () => ref.read(libraryControllerProvider.notifier).refresh(),
+                    onOpenFile: _openLocalFile,
+                    onOpenDownloads: () =>
+                        Navigator.of(context).pushNamed(DownloadManagerScreen.routeName),
+                  ),
+                  Expanded(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 180),
+                      switchInCurve: Curves.easeOut,
+                      child: KeyedSubtree(
+                        key: ValueKey<int>(_index),
+                        child: _buildBody(l10n),
+                      ),
+                    ),
+                  ),
+                  const MiniPlayerBar(),
+                  if (!wide)
+                    _BottomBar(
+                      index: _index,
+                      titles: titles,
+                      onSelect: _selectTab,
+                    ),
+                ],
+              ),
             ),
-          if (_index <= 1)
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(AppLocalizations l10n) {
+    final AsyncValue<LibrarySnapshot?> libraryState = ref.watch(libraryControllerProvider);
+
+    if (_index == 2) {
+      return const IptvScreen();
+    }
+    if (_index == 3) {
+      return const FavoritesScreen();
+    }
+    if (_index == 4) {
+      return const SettingsScreen();
+    }
+
+    return libraryState.when(
+      loading: () => const Center(
+        child: SizedBox(
+          width: 30,
+          height: 30,
+          child: CircularProgressIndicator(strokeWidth: 2.5),
+        ),
+      ),
+      error: (Object error, StackTrace stack) => MxEmptyState(
+        icon: Icons.error_outline_rounded,
+        title: l10n.scanFailed,
+        message: error.toString(),
+        actionLabel: l10n.retry,
+        onAction: () => ref.read(libraryControllerProvider.notifier).refresh(),
+      ),
+      data: (LibrarySnapshot? snapshot) {
+        if (_index == 1) {
+          return FolderListScreen(
+            folders: snapshot?.folders ?? const [],
+          );
+        }
+        return VideoListScreen(
+          videos: snapshot?.videos ?? const [],
+        );
+      },
+    );
+  }
+}
+
+class _TopBar extends ConsumerWidget {
+  const _TopBar({
+    required this.title,
+    required this.index,
+    required this.searchOpen,
+    required this.searchController,
+    required this.searchFocus,
+    required this.onSearchToggle,
+    required this.onPickFolder,
+    required this.onRefresh,
+    required this.onOpenFile,
+    required this.onOpenDownloads,
+  });
+
+  final String title;
+  final int index;
+  final bool searchOpen;
+  final TextEditingController searchController;
+  final FocusNode searchFocus;
+  final VoidCallback onSearchToggle;
+  final VoidCallback onPickFolder;
+  final VoidCallback onRefresh;
+  final VoidCallback onOpenFile;
+  final VoidCallback onOpenDownloads;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l10n = AppLocalizations.of(context)!;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final bool searchable = index <= 1;
+    final LibraryViewState viewState = ref.watch(libraryViewControllerProvider);
+
+    if (searchOpen && searchable) {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(6, 8, 10, 8),
+        color: isDark ? MxColors.background : MxColors.lightBackground,
+        child: Row(
+          children: <Widget>[
             IconButton(
-              tooltip: l10n.refresh,
-              onPressed: () {
-                ref.read(libraryControllerProvider.notifier).refresh();
-              },
-              icon: const Icon(Icons.refresh_rounded),
+              onPressed: onSearchToggle,
+              icon: const Icon(Icons.arrow_back_rounded),
             ),
-          IconButton(
-            tooltip: l10n.pickLocalMedia,
-            onPressed: () async {
-              final result = await FilePicker.platform.pickFiles(
-                type: FileType.custom,
-                allowedExtensions: ['mp4', 'mkv', 'avi', 'mov', 'flv', 'wmv', 'webm', 'm4v'],
-              );
-              final path = result?.files.single.path;
-              if (path == null) {
-                return;
-              }
-              final matches = libraryState.valueOrNull?.videos.where((item) => item.path == path).toList() ?? const [];
-              if (matches.isNotEmpty) {
-                await ref.read(sharedPlayerControllerProvider.notifier).openVideoItem(matches.first);
-              } else {
-                await ref.read(sharedPlayerControllerProvider.notifier).openNetwork(
-                      id: path,
-                      title: result?.files.single.name ?? path,
-                      url: Uri.file(path).toString(),
-                      type: PlaybackSourceType.local,
-                    );
-              }
-              if (context.mounted) {
-                Navigator.of(context).pushNamed(PlayerScreen.routeName);
-              }
-            },
-            icon: const Icon(Icons.video_file_outlined),
+            Expanded(
+              child: TextField(
+                controller: searchController,
+                focusNode: searchFocus,
+                textInputAction: TextInputAction.search,
+                style: const TextStyle(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: l10n.searchHint,
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                  suffixIcon: viewState.searchQuery.isEmpty
+                      ? null
+                      : IconButton(
+                          onPressed: () {
+                            searchController.clear();
+                            ref.read(libraryViewControllerProvider.notifier).clearSearch();
+                          },
+                          icon: const Icon(Icons.close_rounded, size: 18),
+                        ),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+                onChanged: (String value) =>
+                    ref.read(libraryViewControllerProvider.notifier).setSearchQuery(value),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      height: 58,
+      padding: const EdgeInsets.fromLTRB(16, 0, 6, 0),
+      color: isDark ? MxColors.background : MxColors.lightBackground,
+      child: Row(
+        children: <Widget>[
+          const MxWordmark(logoSize: 28, subtitle: 'PRO', compact: true),
+          const SizedBox(width: 12),
+          Container(width: 1, height: 18, color: isDark ? MxColors.divider : MxColors.lightDivider),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18),
+            ),
           ),
+          if (searchable)
+            IconButton(
+              tooltip: l10n.search,
+              onPressed: onSearchToggle,
+              icon: const Icon(Icons.search_rounded, size: 22),
+            ),
           IconButton(
             tooltip: l10n.openDownloads,
-            onPressed: () => Navigator.of(context).pushNamed(DownloadManagerScreen.routeName),
-            icon: const Icon(Icons.download_rounded),
+            onPressed: onOpenDownloads,
+            icon: const Icon(Icons.file_download_outlined, size: 22),
           ),
-        ],
-      ),
-      body: libraryState.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('${l10n.scanFailed}: $error')),
-        data: (snapshot) {
-          final views = [
-            VideoListScreen(videos: snapshot?.videos ?? const []),
-            FolderListScreen(folders: snapshot?.folders ?? const []),
-            const IptvScreen(),
-            const FavoritesScreen(),
-            const SettingsScreen(),
-          ];
-          return IndexedStack(index: _index, children: views);
-        },
-      ),
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (playerState.hasMedia) const _MiniPlayerBar(),
-          NavigationBar(
-            selectedIndex: _index,
-            onDestinationSelected: (value) => setState(() => _index = value),
-            destinations: [
-              NavigationDestination(icon: const Icon(Icons.video_library_outlined), label: l10n.videos),
-              NavigationDestination(icon: const Icon(Icons.folder_open_outlined), label: l10n.folders),
-              NavigationDestination(icon: const Icon(Icons.live_tv_outlined), label: l10n.iptv),
-              NavigationDestination(icon: const Icon(Icons.favorite_border), label: l10n.favorites),
-              NavigationDestination(icon: const Icon(Icons.settings_outlined), label: l10n.settings),
+          PopupMenuButton<String>(
+            tooltip: l10n.more,
+            icon: const Icon(Icons.more_vert_rounded, size: 22),
+            onSelected: (String value) {
+              switch (value) {
+                case 'folder':
+                  onPickFolder();
+                  break;
+                case 'refresh':
+                  onRefresh();
+                  break;
+                case 'file':
+                  onOpenFile();
+                  break;
+                case 'downloads':
+                  onOpenDownloads();
+                  break;
+              }
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              PopupMenuItem<String>(
+                value: 'folder',
+                child: _menuRow(Icons.create_new_folder_outlined, l10n.selectFolder),
+              ),
+              PopupMenuItem<String>(
+                value: 'refresh',
+                child: _menuRow(Icons.refresh_rounded, l10n.scanAgain),
+              ),
+              PopupMenuItem<String>(
+                value: 'file',
+                child: _menuRow(Icons.play_circle_outline_rounded, l10n.pickLocalMedia),
+              ),
+              PopupMenuItem<String>(
+                value: 'downloads',
+                child: _menuRow(Icons.download_rounded, l10n.openDownloads),
+              ),
             ],
           ),
         ],
       ),
     );
   }
+
+  Widget _menuRow(IconData icon, String label) {
+    return Row(
+      children: <Widget>[
+        Icon(icon, size: 18),
+        const SizedBox(width: 10),
+        Text(label),
+      ],
+    );
+  }
 }
 
-class _MiniPlayerBar extends ConsumerWidget {
-  const _MiniPlayerBar();
+class _BottomBar extends StatelessWidget {
+  const _BottomBar({required this.index, required this.titles, required this.onSelect});
+
+  final int index;
+  final List<String> titles;
+  final ValueChanged<int> onSelect;
+
+  static const List<IconData> _icons = <IconData>[
+    Icons.video_library_outlined,
+    Icons.folder_outlined,
+    Icons.live_tv_outlined,
+    Icons.favorite_border_rounded,
+    Icons.settings_outlined,
+  ];
+
+  static const List<IconData> _activeIcons = <IconData>[
+    Icons.video_library_rounded,
+    Icons.folder_rounded,
+    Icons.live_tv_rounded,
+    Icons.favorite_rounded,
+    Icons.settings_rounded,
+  ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final state = ref.watch(sharedPlayerControllerProvider);
-    final controller = ref.read(sharedPlayerControllerProvider.notifier);
-    if (!state.hasMedia) {
-      return const SizedBox.shrink();
-    }
-
-    return Material(
-      color: colorScheme.surface,
-      child: InkWell(
-        onTap: () => Navigator.of(context).pushNamed(PlayerScreen.routeName),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: theme.dividerColor.withOpacity(0.3))),
-          ),
+  Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF101215) : MxColors.lightSurface,
+        border: Border(
+          top: BorderSide(color: isDark ? MxColors.divider : MxColors.lightDivider, width: 0.8),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 58,
           child: Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(Icons.play_circle_fill_rounded, color: colorScheme.primary),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      state.current!.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium,
+            children: <Widget>[
+              for (int i = 0; i < titles.length; i++)
+                Expanded(
+                  child: InkResponse(
+                    onTap: () => onSelect(i),
+                    radius: 34,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Icon(
+                          index == i ? _activeIcons[i] : _icons[i],
+                          size: 22,
+                          color: index == i ? MxColors.brand : MxColors.textTertiary,
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          titles[i],
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 9.8,
+                            fontWeight: index == i ? FontWeight.w700 : FontWeight.w500,
+                            color: index == i ? MxColors.brand : MxColors.textTertiary,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${Formatters.duration(state.position)} / ${Formatters.duration(state.duration)}',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
+                  ),
                 ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SideRail extends StatelessWidget {
+  const _SideRail({
+    required this.index,
+    required this.titles,
+    required this.onSelect,
+    required this.onDownloads,
+  });
+
+  final int index;
+  final List<String> titles;
+  final ValueChanged<int> onSelect;
+  final VoidCallback onDownloads;
+
+  static const List<IconData> _icons = <IconData>[
+    Icons.video_library_outlined,
+    Icons.folder_outlined,
+    Icons.live_tv_outlined,
+    Icons.favorite_border_rounded,
+    Icons.settings_outlined,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: 88,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF101215) : MxColors.lightSurface,
+        border: Border(
+          right: BorderSide(color: isDark ? MxColors.divider : MxColors.lightDivider, width: 0.8),
+        ),
+      ),
+      child: Column(
+        children: <Widget>[
+          const SizedBox(height: 18),
+          const MxLogo(size: 38, showShadow: false),
+          const SizedBox(height: 22),
+          for (int i = 0; i < titles.length; i++)
+            _RailItem(
+              icon: _icons[i],
+              label: titles[i],
+              selected: index == i,
+              onTap: () => onSelect(i),
+            ),
+          const Spacer(),
+          _RailItem(
+            icon: Icons.download_rounded,
+            label: 'DL',
+            selected: false,
+            onTap: onDownloads,
+          ),
+          const SizedBox(height: 14),
+        ],
+      ),
+    );
+  }
+}
+
+class _RailItem extends StatelessWidget {
+  const _RailItem({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          height: 58,
+          decoration: BoxDecoration(
+            color: selected ? MxColors.brand.withOpacity(0.12) : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Icon(
+                icon,
+                size: 22,
+                color: selected ? MxColors.brand : MxColors.textTertiary,
               ),
-              IconButton(
-                onPressed: controller.togglePlayPause,
-                icon: Icon(state.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded),
-              ),
-              IconButton(
-                onPressed: () async {
-                  await controller.stop();
-                },
-                icon: const Icon(Icons.close_rounded),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 9.5,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected ? MxColors.brand : MxColors.textTertiary,
+                ),
               ),
             ],
           ),

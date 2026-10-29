@@ -1,10 +1,13 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+/// Lightweight map based localization used by MX Player Pro.
+///
+/// Keeping the lookup table in a single place makes it trivial to add new
+/// strings without running the l10n code generator.
 class AppLocalizations {
   AppLocalizations(this.locale);
 
@@ -28,291 +31,496 @@ class AppLocalizations {
 
   static const Map<String, Map<String, String>> _values = {
     'en': {
-      'appTitle': 'Smart Player Pro',
-      'videos': 'Videos',
+      'appTitle': 'MX Player Pro',
+      'splashTagline': 'The professional way to watch everything',
+      'splashLoading': 'Loading library',
+      'videos': 'Video',
       'folders': 'Folders',
+      'iptv': 'Live TV',
       'favorites': 'Favorites',
       'settings': 'Settings',
-      'recentlyPlayed': 'Recently Played',
-      'player': 'Player',
-      'language': 'Language',
-      'theme': 'Theme',
-      'themeDark': 'Dark',
-      'languagePlaceholder': 'Switch instantly between English and Arabic.',
-      'playerPlaceholderTitle': 'Player engine ready',
-      'playerPlaceholderBody': 'Use gestures, subtitles, playback speed, and fullscreen controls.',
-      'splashTagline': 'Professional video playback for local media, IPTV, and downloads.',
-      'allVideos': 'All Videos',
-      'storage': 'Storage',
-      'selectFolder': 'Select Folder',
-      'refresh': 'Refresh',
-      'scanFailed': 'Scan failed',
-      'tryAgain': 'Try again',
-      'noLibraryFound': 'No video library found',
-      'noLibraryFoundMessage': 'Choose a folder or grant storage access to scan your video collection.',
-      'noVideosFound': 'No videos found in the selected locations.',
-      'noFoldersFound': 'No folders found.',
-      'items': 'items',
-      'iptv': 'IPTV',
       'downloads': 'Downloads',
-      'miniPlayer': 'Mini player',
-      'play': 'Play',
-      'pause': 'Pause',
-      'resume': 'Resume',
-      'cancel': 'Cancel',
-      'close': 'Close',
-      'playbackSpeed': 'Playback Speed',
-      'fullscreen': 'Fullscreen',
-      'lockControls': 'Lock controls',
-      'unlockControls': 'Unlock controls',
-      'subtitles': 'Subtitles',
-      'subtitleDelay': 'Subtitle Delay',
-      'subtitleSize': 'Subtitle Size',
-      'subtitleColor': 'Subtitle Color',
-      'autoDetectSubtitles': 'Auto-detect subtitles',
-      'loadSubtitle': 'Load subtitle file',
-      'noMediaSelected': 'No media selected',
-      'openPlayer': 'Open player',
-      'volume': 'Volume',
-      'brightness': 'Brightness',
-      'zoom': 'Zoom',
-      'rewind': 'Rewind',
-      'forward': 'Forward',
-      'recent': 'Recent',
-      'favorite': 'Favorite',
-      'unfavorite': 'Remove favorite',
-      'loadPlaylist': 'Load Playlist',
-      'playlistUrl': 'Playlist URL',
-      'channelSearch': 'Search channels',
-      'channels': 'Channels',
-      'noChannels': 'No channels loaded yet.',
-      'favoritesOnly': 'Favorites only',
-      'addDownload': 'Add download',
-      'downloadUrl': 'Video URL',
+      'downloadManager': 'Downloads',
       'downloadHistory': 'Download history',
-      'downloadManager': 'Download Manager',
+      'downloadUrl': 'Video URL',
+      'downloadHint': 'Paste a direct video link to save it offline',
       'downloadQueued': 'Queued',
       'downloadRunning': 'Downloading',
       'downloadPaused': 'Paused',
       'downloadComplete': 'Completed',
       'downloadFailed': 'Failed',
-      'enterUrl': 'Enter a URL',
-      'openDownloads': 'Open downloads',
-      'useSystemTheme': 'Use current theme',
-      'arabic': 'Arabic',
-      'english': 'English',
-      'subtitleNone': 'No subtitles',
-      'subtitleAuto': 'Automatic',
-      'openVideo': 'Open video',
-      'folderPath': 'Folder path',
-      'playlistLoaded': 'Playlist loaded',
-      'invalidPlaylist': 'Unable to load playlist',
+      'addDownload': 'Download',
+      'openDownloads': 'Downloads',
+      'downloadsEmpty': 'Nothing downloaded yet',
       'search': 'Search',
+      'searchVideos': 'Search videos',
+      'searchHint': 'Search by name, folder or format',
       'clear': 'Clear',
-      'noFavoritesYet': 'No favorites yet.',
-      'noRecentYet': 'Nothing played yet.',
-      'downloadHint': 'Paste a direct video URL to download it for offline playback.',
-      'iptvHint': 'Add an M3U or M3U8 playlist URL to stream IPTV channels.',
-      'playerLocked': 'Player locked. Tap the lock to unlock controls.',
-      'pickLocalMedia': 'Pick local media',
+      'cancel': 'Cancel',
+      'close': 'Close',
+      'ok': 'OK',
+      'done': 'Done',
+      'save': 'Save',
+      'delete': 'Delete',
+      'retry': 'Retry',
+      'refresh': 'Refresh',
+      'selectFolder': 'Add folder',
+      'scanFailed': 'Scan failed',
+      'noLibraryFound': 'No videos yet',
+      'noLibraryFoundMessage': 'Add a folder or grant storage access so MX Player Pro can find your videos.',
+      'noVideosFound': 'No videos found',
+      'noFoldersFound': 'No folders found',
+      'items': 'items',
+      'allVideos': 'All videos',
+      'all': 'All',
+      'sortBy': 'Sort by',
+      'sortRecentAdded': 'Date added',
+      'sortRecentPlayed': 'Recently played',
+      'sortName': 'Name',
+      'sortSize': 'File size',
+      'sortDuration': 'Duration',
+      'listView': 'List view',
+      'gridView': 'Grid view',
+      'noResults': 'Nothing matches your search',
+      'continueWatching': 'Continue watching',
+      'recentlyPlayed': 'Recently played',
+      'recent': 'Recent',
+      'playlists': 'Playlists',
+      'noPlaylists': 'No playlists yet',
+      'createPlaylist': 'New playlist',
+      'playlistName': 'Playlist name',
+      'playlistEmpty': 'This playlist is empty',
+      'playAll': 'Play all',
+      'favorite': 'Add to favorites',
+      'unfavorite': 'Remove from favorites',
+      'favoritesOnly': 'Favorites',
+      'noFavoritesYet': 'No favorites yet. Tap the heart on any video.',
+      'noRecentYet': 'Videos you play show up here.',
+      'play': 'Play',
+      'pause': 'Pause',
+      'resume': 'Resume',
+      'player': 'Player',
+      'nowPlaying': 'Now playing',
+      'noMediaSelected': 'Nothing selected',
+      'playbackSpeed': 'Speed',
+      'fullscreen': 'Fullscreen',
+      'exitFullscreen': 'Exit fullscreen',
+      'lockControls': 'Lock',
+      'unlockControls': 'Unlock',
+      'playerLocked': 'Screen locked',
+      'subtitles': 'Subtitle',
+      'subtitlesOff': 'Off',
+      'subtitleDelay': 'Delay',
+      'subtitleSize': 'Size',
+      'subtitleColor': 'Color',
+      'autoDetectSubtitles': 'Auto detect',
+      'loadSubtitle': 'Open subtitle file',
+      'subtitleAuto': 'Automatic',
+      'audio': 'Audio',
+      'aspectRatio': 'Aspect',
+      'aspectFit': 'Fit to screen',
+      'aspectFill': 'Crop',
+      'aspectStretch': 'Stretch',
+      'aspectOriginal': '100%',
+      'rotate': 'Rotate',
+      'nightMode': 'Night mode',
+      'next': 'Next',
+      'previous': 'Previous',
+      'rewind': 'Rewind',
+      'forward': 'Forward',
+      'volume': 'Volume',
+      'brightness': 'Brightness',
+      'zoom': 'Zoom',
+      'resumePlayback': 'Resume',
+      'restartFromBeginning': 'Start over',
+      'autoPlayNext': 'Auto play next',
+      'rememberPosition': 'Resume where I left',
+      'playingNext': 'Up next',
+      'videoInfo': 'Video info',
+      'decoder': 'Decoder',
+      'decoderHardware': 'HW+',
+      'decoderSoftware': 'SW',
+      'playback': 'Playback',
+      'screenRotation': 'Screen orientation',
+      'aspectLocked': 'Aspect locked',
+      'playlistUrl': 'Playlist URL',
+      'loadPlaylist': 'Load',
+      'playlistLoaded': 'Playlist loaded',
+      'invalidPlaylist': 'Could not load playlist',
+      'channelSearch': 'Search channels',
+      'channels': 'Channels',
+      'noChannels': 'No channels yet. Paste an M3U link above.',
+      'iptvHint': 'Add an M3U / M3U8 playlist link to stream channels',
+      'groups': 'Groups',
+      'language': 'Language',
+      'english': 'English',
+      'arabic': 'العربية',
+      'theme': 'Theme',
+      'themeDark': 'Dark',
+      'themeLight': 'Light',
+      'appearance': 'Appearance',
+      'library': 'Library',
+      'about': 'About',
+      'version': 'Version',
+      'appDescription': 'Powerful local video player with gesture controls, subtitles and live TV.',
+      'storage': 'Storage',
+      'folderPath': 'Folder path',
+      'more': 'More',
+      'scanAgain': 'Rescan library',
+      'browseFolders': 'Browse folders',
+      'supportedFormats': 'Supported formats',
+      'openFolder': 'Open folder',
+      'videosCount': 'videos',
+      'resumeFrom': 'Resume from',
+      'watched': 'watched',
+      'now': 'now',
+      'settingsHint': 'Tune the player to your taste',
+      'encoding': 'Encoding',
+      'resolution': 'Resolution',
+      'fileSize': 'Size',
+      'durationLabel': 'Duration',
+      'pathLabel': 'Path',
+      'noDescription': 'No description',
+      'playerEngine': 'Player engine',
+      'pickLocalMedia': 'Open file',
+      'handoff': 'Continue on mini player',
+      'expand': 'Expand',
+      'collapse': 'Collapse',
+      'shortcuts': 'Gestures',
+      'gestureHint': 'Double tap sides to seek, drag up/down for volume and brightness, long press for 2x speed.',
+      'speedNormal': 'Normal',
     },
     'ar': {
-      'appTitle': 'سمارت بلاير برو',
-      'videos': 'الفيديوهات',
+      'appTitle': 'MX Player Pro',
+      'splashTagline': 'الطريقة الاحترافية لمشاهدة كل شيء',
+      'splashLoading': 'جارٍ تحميل المكتبة',
+      'videos': 'فيديو',
       'folders': 'المجلدات',
+      'iptv': 'بث مباشر',
       'favorites': 'المفضلة',
       'settings': 'الإعدادات',
-      'recentlyPlayed': 'المشغلة مؤخراً',
-      'player': 'المشغل',
-      'language': 'اللغة',
-      'theme': 'السمة',
-      'themeDark': 'داكن',
-      'languagePlaceholder': 'يمكنك التبديل فوراً بين العربية والإنجليزية.',
-      'playerPlaceholderTitle': 'محرك التشغيل جاهز',
-      'playerPlaceholderBody': 'استخدم الإيماءات والترجمة وسرعة التشغيل ووضع ملء الشاشة.',
-      'splashTagline': 'تشغيل احترافي للفيديوهات المحلية و IPTV والتنزيلات.',
-      'allVideos': 'كل الفيديوهات',
-      'storage': 'التخزين',
-      'selectFolder': 'اختيار مجلد',
-      'refresh': 'تحديث',
-      'scanFailed': 'فشل الفحص',
-      'tryAgain': 'إعادة المحاولة',
-      'noLibraryFound': 'لم يتم العثور على مكتبة فيديو',
-      'noLibraryFoundMessage': 'اختر مجلداً أو امنح صلاحية التخزين لفحص مكتبة الفيديو الخاصة بك.',
-      'noVideosFound': 'لم يتم العثور على فيديوهات في المواقع المحددة.',
-      'noFoldersFound': 'لم يتم العثور على مجلدات.',
-      'items': 'عنصر',
-      'iptv': 'آي بي تي في',
       'downloads': 'التنزيلات',
-      'miniPlayer': 'المشغل المصغر',
+      'downloadManager': 'التنزيلات',
+      'downloadHistory': 'سجل التنزيلات',
+      'downloadUrl': 'رابط الفيديو',
+      'downloadHint': 'ألصق رابط فيديو مباشر لحفظه للمشاهدة دون اتصال',
+      'downloadQueued': 'في الانتظار',
+      'downloadRunning': 'جارٍ التنزيل',
+      'downloadPaused': 'متوقف مؤقتاً',
+      'downloadComplete': 'مكتمل',
+      'downloadFailed': 'فشل',
+      'addDownload': 'تنزيل',
+      'openDownloads': 'التنزيلات',
+      'downloadsEmpty': 'لا توجد تنزيلات بعد',
+      'search': 'بحث',
+      'searchVideos': 'ابحث في الفيديوهات',
+      'searchHint': 'ابحث بالاسم أو المجلد أو الصيغة',
+      'clear': 'مسح',
+      'cancel': 'إلغاء',
+      'close': 'إغلاق',
+      'ok': 'حسناً',
+      'done': 'تم',
+      'save': 'حفظ',
+      'delete': 'حذف',
+      'retry': 'إعادة المحاولة',
+      'refresh': 'تحديث',
+      'selectFolder': 'إضافة مجلد',
+      'scanFailed': 'فشل الفحص',
+      'noLibraryFound': 'لا توجد فيديوهات بعد',
+      'noLibraryFoundMessage': 'أضف مجلداً أو امنح صلاحية التخزين ليعثر التطبيق على فيديوهاتك.',
+      'noVideosFound': 'لم يتم العثور على فيديوهات',
+      'noFoldersFound': 'لم يتم العثور على مجلدات',
+      'items': 'عنصر',
+      'allVideos': 'كل الفيديوهات',
+      'all': 'الكل',
+      'sortBy': 'ترتيب حسب',
+      'sortRecentAdded': 'تاريخ الإضافة',
+      'sortRecentPlayed': 'المشغّلة مؤخراً',
+      'sortName': 'الاسم',
+      'sortSize': 'الحجم',
+      'sortDuration': 'المدة',
+      'listView': 'قائمة',
+      'gridView': 'شبكة',
+      'noResults': 'لا يوجد ما يطابق بحثك',
+      'continueWatching': 'متابعة المشاهدة',
+      'recentlyPlayed': 'شوهدت مؤخراً',
+      'recent': 'الأحدث',
+      'playlists': 'قوائم التشغيل',
+      'noPlaylists': 'لا توجد قوائم تشغيل',
+      'createPlaylist': 'قائمة جديدة',
+      'playlistName': 'اسم القائمة',
+      'playlistEmpty': 'هذه القائمة فارغة',
+      'playAll': 'تشغيل الكل',
+      'favorite': 'إضافة إلى المفضلة',
+      'unfavorite': 'إزالة من المفضلة',
+      'favoritesOnly': 'المفضلة',
+      'noFavoritesYet': 'لا توجد مفضلات. اضغط على القلب في أي فيديو.',
+      'noRecentYet': 'ستظهر هنا الفيديوهات التي تشغلها.',
       'play': 'تشغيل',
       'pause': 'إيقاف مؤقت',
       'resume': 'استئناف',
-      'cancel': 'إلغاء',
-      'close': 'إغلاق',
-      'playbackSpeed': 'سرعة التشغيل',
+      'player': 'المشغل',
+      'nowPlaying': 'قيد التشغيل',
+      'noMediaSelected': 'لم يتم اختيار شيء',
+      'playbackSpeed': 'السرعة',
       'fullscreen': 'ملء الشاشة',
-      'lockControls': 'قفل التحكم',
-      'unlockControls': 'إلغاء قفل التحكم',
+      'exitFullscreen': 'إنهاء ملء الشاشة',
+      'lockControls': 'قفل',
+      'unlockControls': 'فتح',
+      'playerLocked': 'الشاشة مقفلة',
       'subtitles': 'الترجمة',
-      'subtitleDelay': 'تأخير الترجمة',
-      'subtitleSize': 'حجم الترجمة',
-      'subtitleColor': 'لون الترجمة',
-      'autoDetectSubtitles': 'كشف الترجمة تلقائياً',
-      'loadSubtitle': 'تحميل ملف ترجمة',
-      'noMediaSelected': 'لم يتم اختيار وسائط',
-      'openPlayer': 'فتح المشغل',
+      'subtitlesOff': 'إيقاف',
+      'subtitleDelay': 'التأخير',
+      'subtitleSize': 'الحجم',
+      'subtitleColor': 'اللون',
+      'autoDetectSubtitles': 'كشف تلقائي',
+      'loadSubtitle': 'فتح ملف ترجمة',
+      'subtitleAuto': 'تلقائي',
+      'audio': 'الصوت',
+      'aspectRatio': 'الأبعاد',
+      'aspectFit': 'ملاءمة الشاشة',
+      'aspectFill': 'قص',
+      'aspectStretch': 'تمديد',
+      'aspectOriginal': '100%',
+      'rotate': 'تدوير',
+      'nightMode': 'الوضع الليلي',
+      'next': 'التالي',
+      'previous': 'السابق',
+      'rewind': 'ترجيع',
+      'forward': 'تقديم',
       'volume': 'الصوت',
       'brightness': 'السطوع',
       'zoom': 'التكبير',
-      'rewind': 'ترجيع',
-      'forward': 'تقديم',
-      'recent': 'الأخيرة',
-      'favorite': 'مفضلة',
-      'unfavorite': 'إزالة من المفضلة',
-      'loadPlaylist': 'تحميل القائمة',
-      'playlistUrl': 'رابط القائمة',
-      'channelSearch': 'البحث في القنوات',
-      'channels': 'القنوات',
-      'noChannels': 'لم يتم تحميل قنوات بعد.',
-      'favoritesOnly': 'المفضلة فقط',
-      'addDownload': 'إضافة تنزيل',
-      'downloadUrl': 'رابط الفيديو',
-      'downloadHistory': 'سجل التنزيل',
-      'downloadManager': 'مدير التنزيل',
-      'downloadQueued': 'في الانتظار',
-      'downloadRunning': 'جارٍ التنزيل',
-      'downloadPaused': 'متوقف',
-      'downloadComplete': 'مكتمل',
-      'downloadFailed': 'فشل',
-      'enterUrl': 'أدخل رابطاً',
-      'openDownloads': 'فتح التنزيلات',
-      'useSystemTheme': 'استخدام السمة الحالية',
-      'arabic': 'العربية',
-      'english': 'الإنجليزية',
-      'subtitleNone': 'بدون ترجمة',
-      'subtitleAuto': 'تلقائي',
-      'openVideo': 'فتح الفيديو',
-      'folderPath': 'مسار المجلد',
+      'resumePlayback': 'استئناف',
+      'restartFromBeginning': 'من البداية',
+      'autoPlayNext': 'تشغيل التالي تلقائياً',
+      'rememberPosition': 'استئناف من حيث توقفت',
+      'playingNext': 'التالي',
+      'videoInfo': 'معلومات الفيديو',
+      'decoder': 'فك الترميز',
+      'decoderHardware': 'HW+',
+      'decoderSoftware': 'SW',
+      'playback': 'التشغيل',
+      'screenRotation': 'اتجاه الشاشة',
+      'aspectLocked': 'الأبعاد مقفلة',
+      'playlistUrl': 'رابط قائمة التشغيل',
+      'loadPlaylist': 'تحميل',
       'playlistLoaded': 'تم تحميل القائمة',
       'invalidPlaylist': 'تعذر تحميل القائمة',
-      'search': 'بحث',
-      'clear': 'مسح',
-      'noFavoritesYet': 'لا توجد عناصر مفضلة بعد.',
-      'noRecentYet': 'لم يتم تشغيل أي شيء بعد.',
-      'downloadHint': 'ألصق رابط فيديو مباشر لتنزيله وتشغيله دون اتصال.',
-      'iptvHint': 'أضف رابط قائمة M3U أو M3U8 لبث قنوات IPTV.',
-      'playerLocked': 'المشغل مقفل. اضغط على القفل لإلغاء القفل.',
-      'pickLocalMedia': 'اختيار وسائط محلية',
+      'channelSearch': 'بحث القنوات',
+      'channels': 'القنوات',
+      'noChannels': 'لا توجد قنوات. ألصق رابط M3U بالأعلى.',
+      'iptvHint': 'أضف رابط M3U أو M3U8 لبث القنوات',
+      'groups': 'المجموعات',
+      'language': 'اللغة',
+      'english': 'English',
+      'arabic': 'العربية',
+      'theme': 'المظهر',
+      'themeDark': 'داكن',
+      'themeLight': 'فاتح',
+      'appearance': 'المظهر',
+      'library': 'المكتبة',
+      'about': 'حول التطبيق',
+      'version': 'الإصدار',
+      'appDescription': 'مشغل فيديو قوي مع إيماءات وترجمة وبث مباشر.',
+      'storage': 'التخزين',
+      'folderPath': 'مسار المجلد',
+      'more': 'المزيد',
+      'scanAgain': 'إعادة فحص المكتبة',
+      'browseFolders': 'تصفح المجلدات',
+      'supportedFormats': 'الصيغ المدعومة',
+      'openFolder': 'فتح المجلد',
+      'videosCount': 'فيديو',
+      'resumeFrom': 'المتابعة من',
+      'watched': 'تمت مشاهدته',
+      'now': 'الآن',
+      'settingsHint': 'اضبط المشغل حسب ذوقك',
+      'encoding': 'الترميز',
+      'resolution': 'الدقة',
+      'fileSize': 'الحجم',
+      'durationLabel': 'المدة',
+      'pathLabel': 'المسار',
+      'noDescription': 'لا يوجد وصف',
+      'playerEngine': 'محرك التشغيل',
+      'pickLocalMedia': 'فتح ملف',
+      'handoff': 'المتابعة في المشغل المصغر',
+      'expand': 'توسيع',
+      'collapse': 'تصغير',
+      'shortcuts': 'الإيماءات',
+      'gestureHint': 'اضغط مرتين على الجانبين للتقديم، واسحب لأعلى وأسفل للصوت والسطوع، واضغط مطولاً لسرعة 2x.',
+      'speedNormal': 'عادي',
     },
   };
 
   String _text(String key) {
-    final raw = _values[locale.languageCode]?[key] ?? _values['en']![key] ?? key;
-    if (locale.languageCode == 'ar') {
-      try {
-        return utf8.decode(latin1.encode(raw));
-      } catch (_) {
-        return raw;
-      }
-    }
-    return raw;
+    return _values[locale.languageCode]?[key] ?? _values['en']![key] ?? key;
   }
 
   String get appTitle => _text('appTitle');
+  String get splashTagline => _text('splashTagline');
+  String get splashLoading => _text('splashLoading');
   String get videos => _text('videos');
   String get folders => _text('folders');
+  String get iptv => _text('iptv');
   String get favorites => _text('favorites');
   String get settings => _text('settings');
-  String get recentlyPlayed => _text('recentlyPlayed');
-  String get player => _text('player');
-  String get language => _text('language');
-  String get theme => _text('theme');
-  String get themeDark => _text('themeDark');
-  String get languagePlaceholder => _text('languagePlaceholder');
-  String get playerPlaceholderTitle => _text('playerPlaceholderTitle');
-  String get playerPlaceholderBody => _text('playerPlaceholderBody');
-  String get splashTagline => _text('splashTagline');
-  String get allVideos => _text('allVideos');
-  String get storage => _text('storage');
-  String get selectFolder => _text('selectFolder');
-  String get refresh => _text('refresh');
-  String get scanFailed => _text('scanFailed');
-  String get tryAgain => _text('tryAgain');
-  String get noLibraryFound => _text('noLibraryFound');
-  String get noLibraryFoundMessage => _text('noLibraryFoundMessage');
-  String get noVideosFound => _text('noVideosFound');
-  String get noFoldersFound => _text('noFoldersFound');
-  String get items => _text('items');
-  String get iptv => _text('iptv');
   String get downloads => _text('downloads');
-  String get miniPlayer => _text('miniPlayer');
-  String get play => _text('play');
-  String get pause => _text('pause');
-  String get resume => _text('resume');
-  String get cancel => _text('cancel');
-  String get close => _text('close');
-  String get playbackSpeed => _text('playbackSpeed');
-  String get fullscreen => _text('fullscreen');
-  String get lockControls => _text('lockControls');
-  String get unlockControls => _text('unlockControls');
-  String get subtitles => _text('subtitles');
-  String get subtitleDelay => _text('subtitleDelay');
-  String get subtitleSize => _text('subtitleSize');
-  String get subtitleColor => _text('subtitleColor');
-  String get autoDetectSubtitles => _text('autoDetectSubtitles');
-  String get loadSubtitle => _text('loadSubtitle');
-  String get noMediaSelected => _text('noMediaSelected');
-  String get openPlayer => _text('openPlayer');
-  String get volume => _text('volume');
-  String get brightness => _text('brightness');
-  String get zoom => _text('zoom');
-  String get rewind => _text('rewind');
-  String get forward => _text('forward');
-  String get recent => _text('recent');
-  String get favorite => _text('favorite');
-  String get unfavorite => _text('unfavorite');
-  String get loadPlaylist => _text('loadPlaylist');
-  String get playlistUrl => _text('playlistUrl');
-  String get channelSearch => _text('channelSearch');
-  String get channels => _text('channels');
-  String get noChannels => _text('noChannels');
-  String get favoritesOnly => _text('favoritesOnly');
-  String get addDownload => _text('addDownload');
-  String get downloadUrl => _text('downloadUrl');
-  String get downloadHistory => _text('downloadHistory');
   String get downloadManager => _text('downloadManager');
+  String get downloadHistory => _text('downloadHistory');
+  String get downloadUrl => _text('downloadUrl');
+  String get downloadHint => _text('downloadHint');
   String get downloadQueued => _text('downloadQueued');
   String get downloadRunning => _text('downloadRunning');
   String get downloadPaused => _text('downloadPaused');
   String get downloadComplete => _text('downloadComplete');
   String get downloadFailed => _text('downloadFailed');
-  String get enterUrl => _text('enterUrl');
+  String get addDownload => _text('addDownload');
   String get openDownloads => _text('openDownloads');
-  String get useSystemTheme => _text('useSystemTheme');
-  String get arabic => _text('arabic');
-  String get english => _text('english');
-  String get subtitleNone => _text('subtitleNone');
-  String get subtitleAuto => _text('subtitleAuto');
-  String get openVideo => _text('openVideo');
-  String get folderPath => _text('folderPath');
-  String get playlistLoaded => _text('playlistLoaded');
-  String get invalidPlaylist => _text('invalidPlaylist');
+  String get downloadsEmpty => _text('downloadsEmpty');
   String get search => _text('search');
+  String get searchVideos => _text('searchVideos');
+  String get searchHint => _text('searchHint');
   String get clear => _text('clear');
+  String get cancel => _text('cancel');
+  String get close => _text('close');
+  String get ok => _text('ok');
+  String get done => _text('done');
+  String get save => _text('save');
+  String get delete => _text('delete');
+  String get retry => _text('retry');
+  String get refresh => _text('refresh');
+  String get selectFolder => _text('selectFolder');
+  String get scanFailed => _text('scanFailed');
+  String get noLibraryFound => _text('noLibraryFound');
+  String get noLibraryFoundMessage => _text('noLibraryFoundMessage');
+  String get noVideosFound => _text('noVideosFound');
+  String get noFoldersFound => _text('noFoldersFound');
+  String get items => _text('items');
+  String get allVideos => _text('allVideos');
+  String get all => _text('all');
+  String get sortBy => _text('sortBy');
+  String get sortRecentAdded => _text('sortRecentAdded');
+  String get sortRecentPlayed => _text('sortRecentPlayed');
+  String get sortName => _text('sortName');
+  String get sortSize => _text('sortSize');
+  String get sortDuration => _text('sortDuration');
+  String get listView => _text('listView');
+  String get gridView => _text('gridView');
+  String get noResults => _text('noResults');
+  String get continueWatching => _text('continueWatching');
+  String get recentlyPlayed => _text('recentlyPlayed');
+  String get recent => _text('recent');
+  String get playlists => _text('playlists');
+  String get noPlaylists => _text('noPlaylists');
+  String get createPlaylist => _text('createPlaylist');
+  String get playlistName => _text('playlistName');
+  String get playlistEmpty => _text('playlistEmpty');
+  String get playAll => _text('playAll');
+  String get favorite => _text('favorite');
+  String get unfavorite => _text('unfavorite');
+  String get favoritesOnly => _text('favoritesOnly');
   String get noFavoritesYet => _text('noFavoritesYet');
   String get noRecentYet => _text('noRecentYet');
-  String get downloadHint => _text('downloadHint');
-  String get iptvHint => _text('iptvHint');
+  String get play => _text('play');
+  String get pause => _text('pause');
+  String get resume => _text('resume');
+  String get player => _text('player');
+  String get nowPlaying => _text('nowPlaying');
+  String get noMediaSelected => _text('noMediaSelected');
+  String get playbackSpeed => _text('playbackSpeed');
+  String get fullscreen => _text('fullscreen');
+  String get exitFullscreen => _text('exitFullscreen');
+  String get lockControls => _text('lockControls');
+  String get unlockControls => _text('unlockControls');
   String get playerLocked => _text('playerLocked');
+  String get subtitles => _text('subtitles');
+  String get subtitlesOff => _text('subtitlesOff');
+  String get subtitleDelay => _text('subtitleDelay');
+  String get subtitleSize => _text('subtitleSize');
+  String get subtitleColor => _text('subtitleColor');
+  String get autoDetectSubtitles => _text('autoDetectSubtitles');
+  String get loadSubtitle => _text('loadSubtitle');
+  String get subtitleAuto => _text('subtitleAuto');
+  String get audio => _text('audio');
+  String get aspectRatio => _text('aspectRatio');
+  String get aspectFit => _text('aspectFit');
+  String get aspectFill => _text('aspectFill');
+  String get aspectStretch => _text('aspectStretch');
+  String get aspectOriginal => _text('aspectOriginal');
+  String get rotate => _text('rotate');
+  String get nightMode => _text('nightMode');
+  String get next => _text('next');
+  String get previous => _text('previous');
+  String get rewind => _text('rewind');
+  String get forward => _text('forward');
+  String get volume => _text('volume');
+  String get brightness => _text('brightness');
+  String get zoom => _text('zoom');
+  String get resumePlayback => _text('resumePlayback');
+  String get restartFromBeginning => _text('restartFromBeginning');
+  String get autoPlayNext => _text('autoPlayNext');
+  String get rememberPosition => _text('rememberPosition');
+  String get playingNext => _text('playingNext');
+  String get videoInfo => _text('videoInfo');
+  String get decoder => _text('decoder');
+  String get decoderHardware => _text('decoderHardware');
+  String get decoderSoftware => _text('decoderSoftware');
+  String get playback => _text('playback');
+  String get screenRotation => _text('screenRotation');
+  String get aspectLocked => _text('aspectLocked');
+  String get playlistUrl => _text('playlistUrl');
+  String get loadPlaylist => _text('loadPlaylist');
+  String get playlistLoaded => _text('playlistLoaded');
+  String get invalidPlaylist => _text('invalidPlaylist');
+  String get channelSearch => _text('channelSearch');
+  String get channels => _text('channels');
+  String get noChannels => _text('noChannels');
+  String get iptvHint => _text('iptvHint');
+  String get groups => _text('groups');
+  String get language => _text('language');
+  String get english => _text('english');
+  String get arabic => _text('arabic');
+  String get theme => _text('theme');
+  String get themeDark => _text('themeDark');
+  String get themeLight => _text('themeLight');
+  String get appearance => _text('appearance');
+  String get library => _text('library');
+  String get about => _text('about');
+  String get version => _text('version');
+  String get appDescription => _text('appDescription');
+  String get storage => _text('storage');
+  String get folderPath => _text('folderPath');
+  String get more => _text('more');
+  String get scanAgain => _text('scanAgain');
+  String get browseFolders => _text('browseFolders');
+  String get supportedFormats => _text('supportedFormats');
+  String get openFolder => _text('openFolder');
+  String get videosCount => _text('videosCount');
+  String get resumeFrom => _text('resumeFrom');
+  String get watched => _text('watched');
+  String get now => _text('now');
+  String get settingsHint => _text('settingsHint');
+  String get encoding => _text('encoding');
+  String get resolution => _text('resolution');
+  String get fileSize => _text('fileSize');
+  String get durationLabel => _text('durationLabel');
+  String get pathLabel => _text('pathLabel');
+  String get noDescription => _text('noDescription');
+  String get playerEngine => _text('playerEngine');
   String get pickLocalMedia => _text('pickLocalMedia');
+  String get handoff => _text('handoff');
+  String get expand => _text('expand');
+  String get collapse => _text('collapse');
+  String get shortcuts => _text('shortcuts');
+  String get gestureHint => _text('gestureHint');
+  String get speedNormal => _text('speedNormal');
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override
-  bool isSupported(Locale locale) => ['en', 'ar'].contains(locale.languageCode);
+  bool isSupported(Locale locale) => const <String>['en', 'ar'].contains(locale.languageCode);
 
   @override
   Future<AppLocalizations> load(Locale locale) {

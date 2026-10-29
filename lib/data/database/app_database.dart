@@ -149,7 +149,9 @@ class AppDatabase {
             title: row['title'] as String? ?? row['id'] as String,
             path: row['path'] as String? ?? '',
             isNetwork: (row['is_network'] as int? ?? 0) == 1,
-            playedAt: DateTime.fromMillisecondsSinceEpoch(row['updated_at'] as int),
+            playedAt: DateTime.fromMillisecondsSinceEpoch((row['updated_at'] as num?)?.toInt() ?? 0),
+            positionMs: (row['position_ms'] as num?)?.toInt() ?? 0,
+            durationMs: (row['duration_ms'] as num?)?.toInt() ?? 0,
           ),
         )
         .toList(growable: false);
