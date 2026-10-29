@@ -84,7 +84,9 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           ),
           SafeArea(
             child: Center(
-              child: Column(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   ScaleTransition(
@@ -157,6 +159,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     ),
                   ),
                 ],
+                ),
               ),
             ),
           ),

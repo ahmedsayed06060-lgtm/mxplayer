@@ -34,7 +34,7 @@ class PlayerSurface extends ConsumerWidget {
         break;
     }
 
-    final double brightnessOverlay = ((1 - state.brightness) * 0.75).clamp(0.0, 0.8);
+    final double brightnessOverlay = ((1 - state.brightness) * 0.75).clamp(0.0, 0.8).toDouble();
 
     return ColoredBox(
       color: Colors.black,

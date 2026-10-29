@@ -296,7 +296,7 @@ class MxProgressLine extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(height),
       child: LinearProgressIndicator(
-        value: value.clamp(0, 1),
+        value: value.clamp(0, 1).toDouble(),
         minHeight: height,
         backgroundColor: background,
         valueColor: const AlwaysStoppedAnimation<Color>(MxColors.brand),

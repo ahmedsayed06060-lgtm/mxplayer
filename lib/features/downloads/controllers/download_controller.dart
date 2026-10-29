@@ -32,24 +32,40 @@ class DownloadController extends StateNotifier<List<DownloadItem>> {
       status: DownloadStatus.queued,
       progress: 0,
     );
-    state = [queued, ...state];
+    state = <DownloadItem>[queued, ...state];
     await _ref.read(appDatabaseProvider).saveDownloadHistory(queued);
-    final result = await _service.enqueue(id: id, url: url);
-    await _replace(result);
+    try {
+      final DownloadItem result = await _service.enqueue(id: id, url: url);
+      await _replace(result);
+    } catch (_) {
+      await _replace(queued.copyWith(status: DownloadStatus.failed));
+    }
   }
 
   Future<void> pause(DownloadItem item) async {
-    await _service.pause(item.platformTaskId);
+    try {
+      await _service.pause(item.platformTaskId);
+    } catch (_) {
+      // Keep the UI responsive even if the platform task is gone.
+    }
     await _replace(item.copyWith(status: DownloadStatus.paused));
   }
 
   Future<void> resume(DownloadItem item) async {
-    await _service.resume(item.platformTaskId);
+    try {
+      await _service.resume(item.platformTaskId);
+    } catch (_) {
+      // Ignore platform failures.
+    }
     await _replace(item.copyWith(status: DownloadStatus.running));
   }
 
   Future<void> cancel(DownloadItem item) async {
-    await _service.cancel(item.platformTaskId);
+    try {
+      await _service.cancel(item.platformTaskId);
+    } catch (_) {
+      // Ignore platform failures.
+    }
     await _replace(item.copyWith(status: DownloadStatus.canceled));
   }
 

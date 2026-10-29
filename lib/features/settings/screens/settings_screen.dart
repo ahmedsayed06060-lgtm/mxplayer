@@ -55,7 +55,6 @@ class SettingsScreen extends ConsumerWidget {
             MxSettingsTile(
               icon: Icons.nightlight_round,
               title: l10n.nightMode,
-              subtitle: l10n.playback,
               trailing: Switch(
                 value: prefs.nightMode,
                 onChanged: prefsController.setNightMode,

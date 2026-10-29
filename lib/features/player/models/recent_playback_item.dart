@@ -21,7 +21,7 @@ class RecentPlaybackItem {
     if (durationMs <= 0) {
       return 0;
     }
-    return (positionMs / durationMs).clamp(0.0, 1.0);
+    return (positionMs / durationMs).clamp(0.0, 1.0).toDouble();
   }
 
   bool get isInProgress => progress > 0.02 && progress < 0.96;

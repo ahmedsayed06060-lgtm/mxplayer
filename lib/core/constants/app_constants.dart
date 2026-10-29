@@ -6,7 +6,7 @@ class AppConstants {
   static const String version = '1.62.0';
   static const String buildNumber = '1';
   static const String playerEngine = 'MX Engine';
-  static const String databaseFileName = 'smart_player_pro.db';
+  static const String databaseFileName = 'mx_player.db';
 
   static const List<String> videoExtensions = <String>[
     'mp4',

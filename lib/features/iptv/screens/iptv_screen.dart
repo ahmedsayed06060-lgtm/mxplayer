@@ -41,18 +41,11 @@ class _IptvScreenState extends ConsumerState<IptvScreen> {
     }
     final AsyncValue<IptvState> state = ref.read(iptvControllerProvider);
     final AppLocalizations l10n = AppLocalizations.of(context)!;
-    state.whenOrNull(
-      data: (IptvState data) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${l10n.playlistLoaded} • ${data.channels.length} ${l10n.channels}')),
-        );
-      },
-      error: (Object error, StackTrace stack) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${l10n.invalidPlaylist}: $error')),
-        );
-      },
-    );
+    final IptvState? data = state.valueOrNull;
+    final String message = state.hasError
+        ? '${l10n.invalidPlaylist}: ${state.error}'
+        : '${l10n.playlistLoaded} • ${data?.channels.length ?? 0} ${l10n.channels}';
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override

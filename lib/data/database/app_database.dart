@@ -1,7 +1,7 @@
-﻿import 'dart:async';
-
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
+
+import '../../core/constants/app_constants.dart';
 
 import '../../features/player/models/recent_playback_item.dart';
 import '../models/download_item.dart';
@@ -42,6 +42,11 @@ final class PlaylistVideoRecord {
   final String path;
 }
 
+/// Local persistence for watch progress, downloads and playlists.
+///
+/// Every operation degrades gracefully: platforms without sqflite support
+/// (Windows / Linux desktop) simply keep the session data in memory instead of
+/// crashing, so the player stays usable everywhere.
 class AppDatabase {
   AppDatabase._();
 
@@ -53,11 +58,11 @@ class AppDatabase {
     if (_database != null) {
       return _database!;
     }
-    final dbPath = await getDatabasesPath();
+    final String dbPath = await getDatabasesPath();
     _database = await openDatabase(
-      p.join(dbPath, 'smart_player_pro.db'),
+      p.join(dbPath, AppConstants.databaseFileName),
       version: 1,
-      onCreate: (db, version) async {
+      onCreate: (Database db, int version) async {
         await db.execute('''
           CREATE TABLE watch_progress(
             id TEXT PRIMARY KEY,
@@ -109,99 +114,129 @@ class AppDatabase {
     required int positionMs,
     required int durationMs,
   }) async {
-    final db = await database;
-    await db.insert(
-      'watch_progress',
-      {
-        'id': id,
-        'title': title,
-        'path': path,
-        'is_network': isNetwork ? 1 : 0,
-        'position_ms': positionMs,
-        'duration_ms': durationMs,
-        'updated_at': DateTime.now().millisecondsSinceEpoch,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    try {
+      final Database db = await database;
+      await db.insert(
+        'watch_progress',
+        <String, Object?>{
+          'id': id,
+          'title': title,
+          'path': path,
+          'is_network': isNetwork ? 1 : 0,
+          'position_ms': positionMs,
+          'duration_ms': durationMs,
+          'updated_at': DateTime.now().millisecondsSinceEpoch,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (_) {
+      // Persistence is best effort.
+    }
   }
 
   Future<WatchProgressRecord?> loadWatchProgress(String id) async {
-    final db = await database;
-    final rows = await db.query('watch_progress', where: 'id = ?', whereArgs: [id], limit: 1);
-    if (rows.isEmpty) {
+    try {
+      final Database db = await database;
+      final List<Map<String, Object?>> rows =
+          await db.query('watch_progress', where: 'id = ?', whereArgs: <Object?>[id], limit: 1);
+      if (rows.isEmpty) {
+        return null;
+      }
+      final Map<String, Object?> row = rows.first;
+      return WatchProgressRecord(
+        id: row['id'] as String,
+        positionMs: (row['position_ms'] as num?)?.toInt() ?? 0,
+        durationMs: (row['duration_ms'] as num?)?.toInt() ?? 0,
+      );
+    } catch (_) {
       return null;
     }
-    final row = rows.first;
-    return WatchProgressRecord(
-      id: row['id'] as String,
-      positionMs: row['position_ms'] as int,
-      durationMs: row['duration_ms'] as int,
-    );
   }
 
   Future<List<RecentPlaybackItem>> loadRecentPlayback({int limit = 20}) async {
-    final db = await database;
-    final rows = await db.query('watch_progress', orderBy: 'updated_at DESC', limit: limit);
-    return rows
-        .map(
-          (row) => RecentPlaybackItem(
-            id: row['id'] as String,
-            title: row['title'] as String? ?? row['id'] as String,
-            path: row['path'] as String? ?? '',
-            isNetwork: (row['is_network'] as int? ?? 0) == 1,
-            playedAt: DateTime.fromMillisecondsSinceEpoch((row['updated_at'] as num?)?.toInt() ?? 0),
-            positionMs: (row['position_ms'] as num?)?.toInt() ?? 0,
-            durationMs: (row['duration_ms'] as num?)?.toInt() ?? 0,
-          ),
-        )
-        .toList(growable: false);
+    try {
+      final Database db = await database;
+      final List<Map<String, Object?>> rows =
+          await db.query('watch_progress', orderBy: 'updated_at DESC', limit: limit);
+      return rows
+          .map(
+            (Map<String, Object?> row) => RecentPlaybackItem(
+              id: row['id'] as String,
+              title: row['title'] as String? ?? row['id'] as String,
+              path: row['path'] as String? ?? '',
+              isNetwork: (row['is_network'] as int? ?? 0) == 1,
+              playedAt: DateTime.fromMillisecondsSinceEpoch((row['updated_at'] as num?)?.toInt() ?? 0),
+              positionMs: (row['position_ms'] as num?)?.toInt() ?? 0,
+              durationMs: (row['duration_ms'] as num?)?.toInt() ?? 0,
+            ),
+          )
+          .toList(growable: false);
+    } catch (_) {
+      return const <RecentPlaybackItem>[];
+    }
   }
 
   Future<void> saveDownloadHistory(DownloadItem item) async {
-    final db = await database;
-    await db.insert(
-      'download_history',
-      {
-        'id': item.id,
-        'url': item.url,
-        'file_name': item.fileName,
-        'status': item.status.name,
-        'progress': item.progress,
-        'local_path': item.localPath,
-        'updated_at': DateTime.now().millisecondsSinceEpoch,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    try {
+      final Database db = await database;
+      await db.insert(
+        'download_history',
+        <String, Object?>{
+          'id': item.id,
+          'url': item.url,
+          'file_name': item.fileName,
+          'status': item.status.name,
+          'progress': item.progress,
+          'local_path': item.localPath,
+          'updated_at': DateTime.now().millisecondsSinceEpoch,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (_) {
+      // Persistence is best effort.
+    }
   }
 
   Future<List<DownloadItem>> loadDownloads() async {
-    final db = await database;
-    final rows = await db.query('download_history', orderBy: 'updated_at DESC');
-    return rows
-        .map(
-          (row) => DownloadItem(
-            id: row['id'] as String,
-            url: row['url'] as String,
-            fileName: row['file_name'] as String,
-            status: DownloadStatus.values.byName(row['status'] as String),
-            progress: row['progress'] as int,
-            localPath: row['local_path'] as String?,
-          ),
-        )
-        .toList(growable: false);
+    try {
+      final Database db = await database;
+      final List<Map<String, Object?>> rows = await db.query('download_history', orderBy: 'updated_at DESC');
+      return rows
+          .map(
+            (Map<String, Object?> row) => DownloadItem(
+              id: row['id'] as String,
+              url: row['url'] as String,
+              fileName: row['file_name'] as String,
+              status: DownloadStatus.values.byName(row['status'] as String),
+              progress: (row['progress'] as num?)?.toInt() ?? 0,
+              localPath: row['local_path'] as String?,
+            ),
+          )
+          .toList(growable: false);
+    } catch (_) {
+      return const <DownloadItem>[];
+    }
   }
 
   Future<List<PlaylistRecord>> loadPlaylists() async {
-    final db = await database;
-    final rows = await db.query('playlists', orderBy: 'name COLLATE NOCASE ASC');
-    return rows
-        .map((row) => PlaylistRecord(id: row['id'] as int, name: row['name'] as String))
-        .toList(growable: false);
+    try {
+      final Database db = await database;
+      final List<Map<String, Object?>> rows = await db.query('playlists', orderBy: 'name COLLATE NOCASE ASC');
+      return rows
+          .map((Map<String, Object?> row) => PlaylistRecord(id: row['id'] as int, name: row['name'] as String))
+          .toList(growable: false);
+    } catch (_) {
+      return const <PlaylistRecord>[];
+    }
   }
 
   Future<int> createPlaylist(String name) async {
-    final db = await database;
-    return db.insert('playlists', {'name': name}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    try {
+      final Database db = await database;
+      return db.insert('playlists', <String, Object?>{'name': name}, conflictAlgorithm: ConflictAlgorithm.ignore);
+    } catch (_) {
+      return 0;
+    }
   }
 
   Future<void> addVideoToPlaylist({
@@ -210,37 +245,45 @@ class AppDatabase {
     required String title,
     required String path,
   }) async {
-    final db = await database;
-    await db.insert(
-      'playlist_items',
-      {
-        'playlist_id': playlistId,
-        'video_id': videoId,
-        'title': title,
-        'path': path,
-        'added_at': DateTime.now().millisecondsSinceEpoch,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    try {
+      final Database db = await database;
+      await db.insert(
+        'playlist_items',
+        <String, Object?>{
+          'playlist_id': playlistId,
+          'video_id': videoId,
+          'title': title,
+          'path': path,
+          'added_at': DateTime.now().millisecondsSinceEpoch,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (_) {
+      // Persistence is best effort.
+    }
   }
 
   Future<List<PlaylistVideoRecord>> loadPlaylistVideos(int playlistId) async {
-    final db = await database;
-    final rows = await db.query(
-      'playlist_items',
-      where: 'playlist_id = ?',
-      whereArgs: [playlistId],
-      orderBy: 'added_at DESC',
-    );
-    return rows
-        .map(
-          (row) => PlaylistVideoRecord(
-            playlistId: row['playlist_id'] as int,
-            videoId: row['video_id'] as String,
-            title: row['title'] as String,
-            path: row['path'] as String,
-          ),
-        )
-        .toList(growable: false);
+    try {
+      final Database db = await database;
+      final List<Map<String, Object?>> rows = await db.query(
+        'playlist_items',
+        where: 'playlist_id = ?',
+        whereArgs: <Object?>[playlistId],
+        orderBy: 'added_at DESC',
+      );
+      return rows
+          .map(
+            (Map<String, Object?> row) => PlaylistVideoRecord(
+              playlistId: (row['playlist_id'] as num).toInt(),
+              videoId: row['video_id'] as String,
+              title: row['title'] as String,
+              path: row['path'] as String,
+            ),
+          )
+          .toList(growable: false);
+    } catch (_) {
+      return const <PlaylistVideoRecord>[];
+    }
   }
 }

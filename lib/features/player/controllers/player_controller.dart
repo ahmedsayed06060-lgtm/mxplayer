@@ -87,7 +87,7 @@ class SharedPlayerState {
     if (duration.inMilliseconds <= 0) {
       return 0;
     }
-    return (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0);
+    return (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0).toDouble();
   }
 
   Duration get remaining {
@@ -154,6 +154,7 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
   late final VideoController videoController;
   int _lastSavedSecond = -1;
   bool _handlingCompletion = false;
+  bool _disposed = false;
   double? _speedBeforeBoost;
 
   @override
@@ -204,6 +205,7 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
     });
 
     ref.onDispose(() async {
+      _disposed = true;
       await _persistProgress(force: true);
       await player.dispose();
     });
@@ -490,6 +492,9 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
   }
 
   Future<void> _persistProgressIfNeeded() async {
+    if (_disposed) {
+      return;
+    }
     final int seconds = state.position.inSeconds;
     if (seconds == _lastSavedSecond || seconds % 5 != 0) {
       return;
@@ -503,6 +508,9 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
     if (current == null) {
       return;
     }
+    if (_disposed && !force) {
+      return;
+    }
     if (!force && state.position == Duration.zero) {
       return;
     }
@@ -514,10 +522,12 @@ class SharedPlayerController extends Notifier<SharedPlayerState> {
           positionMs: state.position.inMilliseconds,
           durationMs: state.duration.inMilliseconds,
         );
-    ref.read(recentPlaybackProvider.notifier).updateProgress(
-          current.id,
-          positionMs: state.position.inMilliseconds,
-          durationMs: state.duration.inMilliseconds,
-        );
+    if (!_disposed) {
+      ref.read(recentPlaybackProvider.notifier).updateProgress(
+            current.id,
+            positionMs: state.position.inMilliseconds,
+            durationMs: state.duration.inMilliseconds,
+          );
+    }
   }
 }

@@ -86,8 +86,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     final SharedPlayerController controller = ref.read(sharedPlayerControllerProvider.notifier);
-    if (match != null) {
-      await controller.openVideoItem(match!);
+    final VideoItem? known = match;
+    if (known != null) {
+      await controller.openVideoItem(known);
     } else {
       await controller.openNetwork(
         id: path,
@@ -246,6 +247,7 @@ class _TopBar extends ConsumerWidget {
     final AppLocalizations l10n = AppLocalizations.of(context)!;
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final bool searchable = index <= 1;
+    final bool showWordmark = MediaQuery.sizeOf(context).width >= 430;
     final LibraryViewState viewState = ref.watch(libraryViewControllerProvider);
 
     if (searchOpen && searchable) {
@@ -294,10 +296,12 @@ class _TopBar extends ConsumerWidget {
       color: isDark ? MxColors.background : MxColors.lightBackground,
       child: Row(
         children: <Widget>[
-          const MxWordmark(logoSize: 28, subtitle: 'PRO', compact: true),
-          const SizedBox(width: 12),
-          Container(width: 1, height: 18, color: isDark ? MxColors.divider : MxColors.lightDivider),
-          const SizedBox(width: 12),
+          if (showWordmark) ...<Widget>[
+            const MxWordmark(logoSize: 28, subtitle: 'PRO', compact: true),
+            const SizedBox(width: 12),
+            Container(width: 1, height: 18, color: isDark ? MxColors.divider : MxColors.lightDivider),
+            const SizedBox(width: 12),
+          ],
           Expanded(
             child: Text(
               title,

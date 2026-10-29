@@ -377,7 +377,9 @@ class _ContinueCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final String remaining = item.durationMs > 0
-        ? Formatters.duration(Duration(milliseconds: (item.durationMs - item.positionMs).clamp(0, item.durationMs)))
+        ? Formatters.duration(
+            Duration(milliseconds: (item.durationMs - item.positionMs).clamp(0, item.durationMs).toInt()),
+          )
         : '';
 
     return SizedBox(

@@ -108,6 +108,19 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     });
   }
 
+  void _handleTap() {
+    if (ref.read(sharedPlayerControllerProvider).locked) {
+      setState(() => _controlsVisible = !_controlsVisible);
+      if (_controlsVisible) {
+        _scheduleAutoHide();
+      } else {
+        _hideTimer?.cancel();
+      }
+      return;
+    }
+    _toggleControls();
+  }
+
   void _toggleControls() {
     setState(() => _controlsVisible = !_controlsVisible);
     if (_controlsVisible) {
@@ -214,7 +227,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: state.locked ? null : _toggleControls,
+              onTap: _handleTap,
               onDoubleTapDown: (TapDownDetails details) => _doubleTapPosition = details.localPosition,
               onDoubleTap: state.locked ? null : _handleDoubleTap,
               onLongPressStart: state.locked
@@ -266,6 +279,13 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
                       }
                       setState(() => _seekPreview = null);
                       _scheduleAutoHide();
+                    },
+              onHorizontalDragCancel: state.locked
+                  ? null
+                  : () {
+                      if (mounted) {
+                        setState(() => _seekPreview = null);
+                      }
                     },
               onVerticalDragStart: state.locked
                   ? null
@@ -474,7 +494,9 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
     SharedPlayerController controller,
     AppLocalizations l10n,
   ) {
-    return Row(
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: <Widget>[
         _CircleAction(
@@ -521,6 +543,7 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
           tooltip: l10n.next,
         ),
       ],
+      ),
     );
   }
 
@@ -598,38 +621,47 @@ class _PlayerScreenState extends ConsumerState<PlayerScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: <Widget>[
-                    _PlayerAction(
-                      icon: Icons.speed_rounded,
-                      label: state.playbackSpeed == 1
-                          ? l10n.playbackSpeed
-                          : '${state.playbackSpeed}x',
-                      onTap: () => _showSpeedSheet(context, l10n),
+                    Expanded(
+                      child: _PlayerAction(
+                        icon: Icons.speed_rounded,
+                        label: state.playbackSpeed == 1
+                            ? l10n.playbackSpeed
+                            : '${state.playbackSpeed}x',
+                        onTap: () => _showSpeedSheet(context, l10n),
+                      ),
                     ),
-                    _PlayerAction(
-                      icon: Icons.subtitles_outlined,
-                      label: state.subtitlesEnabled ? l10n.subtitles : l10n.subtitlesOff,
-                      active: state.subtitlesEnabled && state.subtitlePath != null,
-                      onTap: () => _showSubtitleSheet(context, state, l10n),
+                    Expanded(
+                      child: _PlayerAction(
+                        icon: Icons.subtitles_outlined,
+                        label: state.subtitlesEnabled ? l10n.subtitles : l10n.subtitlesOff,
+                        active: state.subtitlesEnabled && state.subtitlePath != null,
+                        onTap: () => _showSubtitleSheet(context, state, l10n),
+                      ),
                     ),
-                    _PlayerAction(
-                      icon: Icons.aspect_ratio_rounded,
-                      label: _aspectLabel(state.aspectMode, l10n),
-                      onTap: () => _showAspectSheet(context, state, l10n),
+                    Expanded(
+                      child: _PlayerAction(
+                        icon: Icons.aspect_ratio_rounded,
+                        label: _aspectLabel(state.aspectMode, l10n),
+                        onTap: () => _showAspectSheet(context, state, l10n),
+                      ),
                     ),
-                    _PlayerAction(
-                      icon: Icons.lock_outline_rounded,
-                      label: l10n.lockControls,
-                      onTap: () {
-                        controller.toggleLock();
-                        setState(() => _controlsVisible = false);
-                      },
+                    Expanded(
+                      child: _PlayerAction(
+                        icon: Icons.lock_outline_rounded,
+                        label: l10n.lockControls,
+                        onTap: () {
+                          controller.toggleLock();
+                          setState(() => _controlsVisible = false);
+                        },
+                      ),
                     ),
-                    _PlayerAction(
-                      icon: _fullscreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
-                      label: l10n.rotate,
-                      onTap: _toggleFullscreen,
+                    Expanded(
+                      child: _PlayerAction(
+                        icon: _fullscreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                        label: l10n.rotate,
+                        onTap: _toggleFullscreen,
+                      ),
                     ),
                   ],
                 ),
@@ -1055,24 +1087,21 @@ class _PlayerAction extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Icon(icon, size: 21, color: active ? MxColors.brand : Colors.white),
             const SizedBox(height: 4),
-            SizedBox(
-              width: 62,
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w500,
-                  color: active ? MxColors.brand : Colors.white70,
-                ),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 9.5,
+                fontWeight: FontWeight.w500,
+                color: active ? MxColors.brand : Colors.white70,
               ),
             ),
           ],
@@ -1252,7 +1281,7 @@ class _SliderRow extends StatelessWidget {
             ],
           ),
           Slider(
-            value: value.clamp(min, max),
+            value: value.clamp(min, max).toDouble(),
             min: min,
             max: max,
             onChanged: onChanged,

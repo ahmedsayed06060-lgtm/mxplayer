@@ -168,7 +168,8 @@ Future<void> _showPlaylistPicker(BuildContext context, WidgetRef ref, VideoItem 
                 title: Text(l10n.noPlaylists, style: Theme.of(context).textTheme.bodySmall),
               )
             else
-              Flexible(
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 320),
                 child: ListView(
                   shrinkWrap: true,
                   children: <Widget>[
