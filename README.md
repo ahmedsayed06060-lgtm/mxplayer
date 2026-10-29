@@ -19,7 +19,8 @@ dark UI.
 - Format chips (All, MP4, MKV, AVI, WEBM) and a favorites filter.
 - Search by title, folder or container, plus folder browser with per-folder counts.
 - Each thumbnail shows resolution quality (4K/FHD/HD/SD), duration, watch progress and a
-  favorite marker. Long press / ⋮ opens the MX style action sheet (play, favorite,
+  favorite marker. Thumbnails are cached; metadata is probed in small parallel batches
+  (capped for very large libraries) so the first screen appears quickly. Long press / ⋮ opens the MX style action sheet (play, favorite,
   playlists, video info).
 
 ### Player
